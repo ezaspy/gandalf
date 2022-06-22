@@ -1,0 +1,12 @@
+# Testing Environment
+TEST/*
+rivendell/*/__pycache__/*
+
+# Python Tools for Visual Studio (PTVS)
+__pycache__/
+*.pyc
+.vscode/*
+
+# Mac
+.DS_Store
+xcode/
