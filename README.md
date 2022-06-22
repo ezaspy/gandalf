@@ -1,7 +1,7 @@
 <!-- PROJECT LOGO -->
 <p align="center">
   <a href="https://github.com/ezaspy/gandalf">
-    <img src="gandalf/images/logo_transparent.png" alt="Logo" width="400" height="400">
+    <img src="gandalf/images/logo_trans_big.png" alt="Logo" width="400" height="400">
   </a>
   <p align="center">
     Forensics artefact acquisition script(s) to be used in conjunction with elrond.
@@ -55,7 +55,7 @@
 ## About The Project
 
 gandalf has been created to help fellow digitial forensicators with the live collection of forensic artefacts from a Windows, Linux and masOS hosts. Depending on the host OS, either gandalf.ps1 or gandalf.py will be required; to ensure compatibility for Windows and \*nix hosts respectively.
-gandalf will collect all commonly utilised forensic artefacts but it will not process them - this is handled by the script ([elrond])(https://github.com/ezaspy/elrond), which converts all of the artefacts to either JSON or CSV and can then stand up an on-the-fly Splunk or elastic stack instance whilst mapping evidence within those artefacts to the MITRE ATT&CK® Framework.
+gandalf will collect all commonly utilised forensic artefacts but it will not process them - this is handled by the script [elrond](https://github.com/ezaspy/elrond), which converts all of the artefacts to either JSON or CSV and can then stand up an on-the-fly Splunk or elastic stack instance whilst mapping evidence within those artefacts to the MITRE ATT&CK® Framework.
 <br><br><br>
 
 <!-- Prerequisites -->
