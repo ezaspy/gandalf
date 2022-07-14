@@ -18,7 +18,7 @@
       <img src="https://img.shields.io/github/stars/ezaspy/gandalf" alt="Stars">
     </a>
     <a href="https://docs.microsoft.com/en-us/powershell/">
-      <img src="https://img.shields.io/badge/language-python-purple" alt="PowerShell">
+      <img src="https://img.shields.io/badge/language-powershell-purple" alt="PowerShell">
     </a>
     <a href="https://www.python.org">
       <img src="https://img.shields.io/badge/language-python-pink" alt="Python">
@@ -55,15 +55,14 @@
 ## About The Project
 
 gandalf has been created to help fellow digitial forensicators with the live collection of forensic artefacts from a Windows, Linux and masOS hosts. Depending on the host OS, either gandalf.ps1 or gandalf.py will be required; to ensure compatibility for Windows and \*nix hosts respectively.
-gandalf will collect all commonly utilised forensic artefacts but it will not process them - this is handled by the script [elrond](https://github.com/ezaspy/elrond), which converts all of the artefacts to either JSON or CSV and can then stand up an on-the-fly Splunk or elastic stack instance whilst mapping evidence within those artefacts to the MITRE ATT&CK® Framework.
+gandalf will collect all commonly utilised forensic artefacts but it will not process them - this is handled by it's 'brother' script [elrond](https://github.com/ezaspy/elrond), which converts all of the artefacts to either JSON or CSV and can then stand up an on-the-fly Splunk or elastic stack instance whilst mapping evidence within those artefacts to the MITRE ATT&CK® Framework, if desired.
 <br><br><br>
 
 <!-- Prerequisites -->
 
 ## Prerequisites
 
-The only prequisites for gandalf is permissions. You must have admin rights to obtain the necessary artefacts from remote hosts within your environment.<br>
-<br><br>
+The only prequisites for gandalf is permissions. You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md) file for instructions on how to do this - either using [Just Enough Admin (JEA)](https://docs.microsoft.com/en-us/powershell/scripting/learn/remoting/jea/overview?view=powershell-7.2), jumphost, endpoint-to-endpoint or locally.<br><br>
 
 <!-- USAGE EXAMPLES -->
 
@@ -71,11 +70,10 @@ The only prequisites for gandalf is permissions. You must have admin rights to o
 
 ### Windows<br>
 
-`powershell.exe .\Gandalf.ps1 [-h] [-LR] <case_id> <output_directory>`<br><br>
+`powershell.exe .\gandalf.ps1 [<output_directory>] [-Deployment <Local/Remote>] [-AdditionalFiles <include/exclude_file>]`<br><br>
 
 ### Linux/macOS
-
-`python3 gandalf.py [-h] [-LR] <case_id> <output_directory>`<br>
+`python3 gandalf.py [<output_directory>] [-h] [-D Local/Remote] [-F <include_file>]`<br>
 
 <br><br><br>
 
