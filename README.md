@@ -17,12 +17,6 @@
     <a href="https://github.com/ezaspy/gandalf/stargazers">
       <img src="https://img.shields.io/github/stars/ezaspy/gandalf" alt="Stars">
     </a>
-    <a href="https://docs.microsoft.com/en-us/powershell/">
-      <img src="https://img.shields.io/badge/language-powershell-purple" alt="PowerShell">
-    </a>
-    <a href="https://www.python.org">
-      <img src="https://img.shields.io/badge/language-python-pink" alt="Python">
-    </a>
     <a>
       <img src="https://img.shields.io/badge/subject-DFIR-red" alt="Subject">
     </a>
