@@ -4,7 +4,7 @@
     <img src="gandalf/images/logo_trans_big.png" alt="Logo" width="400" height="400">
   </a>
   <p align="center">
-    Forensics artefact acquisition script(s) to be used in conjunction with elrond.
+    Forensics artefact acquisition scripts to be used in conjunction with elrond.
     <br><br>
     <a href="https://mit-license.org">
       <img src="https://img.shields.io/github/license/ezaspy/gandalf" alt="License: MIT">
@@ -56,20 +56,25 @@ gandalf will collect all commonly utilised forensic artefacts but it will not pr
 
 ## Prerequisites
 
-The only prequisites for gandalf is permissions. You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md) file for instructions on how to do this - either using [Just Enough Admin (JEA)](https://docs.microsoft.com/en-us/powershell/scripting/learn/remoting/jea/overview?view=powershell-7.2), jumphost, endpoint-to-endpoint or locally.<br><br>
+The only prequisites for gandalf is permissions. You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. This is true for both Remote and Local acquisitions.<br>
+On Windows Server 2012+ remoting is enabled by default. You only need to confirm that your firewall rules allow inbound access. 
+However, no Windows client OS has PowerShell remoting enabled by default.<br>
+Please review the [SUPPORT.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) file for instructions on how to leverage and deploy gandalf.<br>
+Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md) file for instructions on how to enable PowerShell remoting.<br><br><br>
 
 <!-- USAGE EXAMPLES -->
 
 ## Usage
 
-### Windows<br>
+### Windows
 
-`powershell.exe .\gandalf.ps1 [<output_directory>] [-Deployment <Local/Remote>] [-AdditionalFiles <include/exclude_file>]`<br><br>
+- Open 'Windows PowerShell' (not PowerShell Core) with Local Administrator privileges<br>
+  - Tip: CTRL + SHIFT + PowerShell
+
+`.\Enter-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <C:\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-Quiet] [-CollectFiles <include/exclude_file>]`<br>
 
 ### Linux/macOS
-`python3 gandalf.py [<output_directory>] [-h] [-D Local/Remote] [-F <include_file>]`<br>
-
-<br><br><br>
+`sudo python3 gandalf.py [-h] [-E <Key/Password/None>] [-A <Local/Remote>] [-O] [-M] [-S] [-Q] [-C <include_file>]`<br><br><br>
 
 <!-- CONTRIBUTING -->
 
@@ -107,8 +112,10 @@ Other Projects: [https://github.com/ezaspy/](https://github.com/ezaspy/)
 ## Acknowledgements
 
 - [Jason Fossen](https://blueteampowershell.com/)<br>
-- [SANS](https://www.sans.org)
-
+- [SANS](https://www.sans.org)<br>
+- [7Zip4PowerShell](https://www.powershellgallery.com/packages/7Zip4Powershell/2.2.0)<br>
+- [TheSleuthKit](https://sleuthkit.org/)<br>
+- [DumpIt](https://github.com/Crypt2Shell/Comae-Toolkit)<br><br>
 - Documentation
   - [Best-README-Template](https://github.com/othneildrew/Best-README-Template)
   - [hatchful](https://hatchful.shopify.com)
