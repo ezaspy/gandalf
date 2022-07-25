@@ -23,12 +23,12 @@ To enable PowerShell remoting, ensure that *TCP ports 5985 and 5986* are open on
 
 #### Windows
 `sudo git clone https://github.com/ezaspy/gandalf.git`
-- Edit **...\gandalf\gandalf\shire\hosts.list**
-- Move **...\gandalf** to acquisition host<br><br>
+- Edit [...\gandalf\gandalf\shire\hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/shire/hosts.list)
+- Move [\gandalf](https://github.com/ezaspy/gandalf/tree/main/gandalf) to acquisition host<br><br>
 
 #### Linux/macOS
 
 `sudo git clone https://github.com/ezaspy/gandalf.git`
-- Edit **.../gandalf/gandalf/shire/hosts.list**
-- Move **.../gandalf** to acquisition host<br><br>
+- Edit [.../gandalf/gandalf/shire/hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/shire/hosts.list)
+- Move [/gandalf](https://github.com/ezaspy/gandalf/tree/main/gandalf) to acquisition host<br><br>
 
