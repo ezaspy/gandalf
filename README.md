@@ -68,12 +68,16 @@ Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/
 
 ### Windows
 
+- Populate [hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md#Windows), if required<br>
 - Open 'Windows PowerShell' (not PowerShell Core) with Local Administrator privileges<br>
   - Tip: CTRL + SHIFT + PowerShell
 
-`.\Enter-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <C:\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-Quiet] [-CollectFiles <include/exclude_file>]`<br>
+`.\Enter-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <C:\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-Quiet] [-CollectFiles <include/exclude_file>]`<br><br>
 
 ### Linux/macOS
+- Populate [hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md#Linux-macOS), if required<br>
+- Open Terminal<br>
+
 `sudo python3 gandalf.py [-h] [-E <Key/Password/None>] [-A <Local/Remote>] [-O] [-M] [-S] [-Q] [-C <include_file>]`<br><br><br>
 
 <!-- CONTRIBUTING -->
