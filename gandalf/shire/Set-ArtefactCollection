@@ -144,14 +144,15 @@ function Get-Artefacts {
         Remove-Item "$OutputDirectory\tools\icat" -Recurse -Force
         $global:ProgressPreference = "Continue"
         Write-Host "       Acquired `$MFT from '$Hostname'" -ForegroundColor Green
-        $Message = "acquired '$ArtefactFile' from '$Hostname'"
+        $Message = "acquired '`$MFT' from '$Hostname'"
         Add-LogEntry $ShowProgress $OutputDirectory $Hostname $ArtefactFile $Message
         $Artefacts = @("hiberfil.sys", "pagefile.sys", "Windows\AppCompat\Programs\Amcache.hve", "Windows\INF\setupapi.dev.log")
         ForEach ($Artefact in $Artefacts) { 
             $ArtefactFile = $Artefact.Split("\\")[-1]
             Write-Progress "Acquiring $ArtefactFile from '$Hostname'..."
             try { 
-                Copy-Item $DriveLetter\$Artefact -Destination $OutputDirectory\$Hostname\artefacts\arefacts\raw\ -Force -ErrorAction SilentlyContinue
+                Copy-Item $DriveLetter\$Artefact -Destination $OutputDirectory\$Hostname\artefacts\artefacts\raw\ -Force -ErrorAction SilentlyContinue
+                Write-Host "       Acquired '$ArtefactFile' from '$Hostname'" -ForegroundColor Green
                 $Message = "acquired '$ArtefactFile' from '$Hostname'"
                 Add-LogEntry $ShowProgress $OutputDirectory $Hostname $Artefact $Message
             }
@@ -386,10 +387,69 @@ function Get-Artefacts {
     Write-Progress -Activity "_" -Completed
 }
 
+function Get-Files {
+    Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
+    $Filelist = Get-Content "C:\TEMP\gandalf\gandalf\shire\files.list"
+    ForEach ($Filename in $Filelist) {
+        Write-Progress "Searching '$Hostname' for '$Filename'..."
+        $Files = Get-ChildItem -Path $DriveLetter\ -Filter $Filename -Recurse -ErrorAction SilentlyContinue -Force
+        $Fullfiles = $Files.FullName
+        if ($null -ne $Fullfiles) {
+            ForEach ($Fullfile in $Fullfiles) {
+                if (-Not ($Fullfile | Select-String -Pattern "TEMP\gandalf\" -SimpleMatch)) {
+                    Write-Host "       Found '$Fullfile'"
+                    $FileDirectory = $Fullfile.Split("\\")[-2]
+                    $File = $Fullfile.Split("\\")[-1]
+                    if (-Not (Test-Path -LiteralPath $FileDirectory)) {
+                        New-Item -Path $OutputDirectory\$Hostname\artefacts\files\$FileDirectory\ -ItemType Directory -Force -ErrorAction SilentlyContinue > $null
+                    }
+                    try { 
+                        Copy-Item $Fullfile -Destination $OutputDirectory\$Hostname\artefacts\files\$FileDirectory\$File -Force -ErrorAction SilentlyContinue
+                        Write-Host "        Collected '$Fullfile'" -ForegroundColor Green
+                        $Message = "collected '$Fullfile' from '$Hostname'"
+                        Add-LogEntry $ShowProgress $OutputDirectory $Hostname "collected_file" $Message
+                    }
+                    catch { 
+                        Write-Host "      FAILURE: '$Fullfile' could not be collected; it may be being used by another process." -ForegroundColor Red
+                    }
+                }
+            }
+        }
+    }
+}
+
 function Get-Metadata {
     #$DateTime = "{0:o}" -f (Get-Date)
     $FileHash = Get-FileHash -Algorithm SHA256 $Artefact
     "$Hostname,$FileHash`n" | Set-Content $OutputDirectory\$Hostname\log.audit
+}
+
+function Get-Modules {
+    Param ($EncryptionObject)
+    if (Get-Module -ListAvailable -Name 7Zip4PowerShell) {
+        Write-Host "     Great! PowerShell module '7Zip4PowerShellModule' is already installed"
+    } 
+    else {
+        Write-Host "    Attempting to install additional modules..."
+        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -WarningVariable NuGetSTDOUT -WarningAction SilentlyContinue -ErrorVariable SilentlyContinue > $null 2>&1
+        $NuGetSTDOUT = $($NuGetSTDOUT -join " ")
+        if ($NuGetSTDOUT | Select-String -Pattern "Unable to download from URI") {
+            Write-Host "`n     Unable to download required modules. If you are unable to connect to the`n      Internet, you will need to use the switch -EncryptionObject with 'None'`n      Please try again.`n`n"
+            Exit
+        }
+        else {
+            if ($EncryptionObject -eq "Password") {
+                if (Get-Module -ListAvailable -Name PoShKeePass) {
+                    Write-Host "     Great! PowerShell module 'PoShKeePass' is already installed"
+                }
+                else {
+                    Install-Module -Name PoShKeePass -Force
+                }
+            }
+            Install-Module -Name 7Zip4PowerShell -Force
+            Write-Host "     Additional modules installed successfully"
+        }
+    }
 }
 
 function Get-Platform {
@@ -400,9 +460,8 @@ function Get-Platform {
     else {
         $Platform = "Windows10"
     }
-    "$Hostname::$Platform
-" | Set-Content $OutputDirectory\$Hostname\artefacts\artefacts\raw\host.info
-    Write-Host "       Identified '$Hostname' as '$Platform'" -ForegroundColor White
+    "$Hostname::$Platform`n" | Set-Content $OutputDirectory\$Hostname\artefacts\artefacts\host.info
+    Write-Host "      Identified '$Hostname' as '$Platform'" -ForegroundColor White
     $Message = "identified '$Hostname' as $Platform"
     Add-LogEntry $ShowProgress $OutputDirectory $Hostname $Platform $Message
 }
@@ -484,14 +543,26 @@ function New-Directories {
 }
 
 function Invoke-LocalSession {
-    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $Hostname, $ArchiveObject)
+    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $Hostname, $ArchiveObject, $CollectFiles)
     $DriveLetter = New-Directories $OutputDirectory $Hostname
     "LastWriteTime,gandalf_host,gandalf_stage,gandalf_log_entry" | Set-Content $OutputDirectory\$Hostname\log.audit
     Write-Host "`n  -> Commencing artefact acquisition for: '$Hostname'`n    ----------------------------------------" -Foreground Gray
     $Message = "commencing artefact acquisition from '$Hostname'"
     Add-LogEntry $ShowProgress $OutputDirectory $Hostname "acquisition_commenced" $Message
     Get-Platform $ShowProgress $DriveLetter $OutputDirectory $Hostname
-    Get-Artefacts $ShowProgress $Memory $DriveLetter $OutputDirectory $Hostname
+    #Get-Artefacts $ShowProgress $Memory $DriveLetter $OutputDirectory $Hostname
+    if ($CollectFiles -And $CollectFiles -ne "False") {
+        $Message = "commencing file collection from '$Hostname'"
+        Add-LogEntry $ShowProgress $OutputDirectory $Hostname "file_collection_commenced" $Message
+        Write-Host "`n     Commencing file collection for: '$Hostname'" -Foreground Gray
+        $Message = "commencing file collection from '$Hostname'"
+        if (-Not (Test-Path -LiteralPath $OutputDirectory\$Hostname\artefacts\files)) {
+            New-Item -Path $OutputDirectory\$Hostname\artefacts\files -ItemType Directory > $null
+        }
+        Get-Files $ShowProgress $DriveLetter $OutputDirectory $Hostname
+        $Message = "completed file collection from '$Hostname'"
+        Add-LogEntry $ShowProgress $OutputDirectory $Hostname "file_collection_completed" $Message
+    }
     $Result = Optimize-Archive $OutputDirectory $Hostname
     if ($Result -gt 0) {
         New-Archive $EncryptionObject $OutputDirectory $ShowProgress $Hostname $Message $ArchiveObject
@@ -502,4 +573,4 @@ function Invoke-LocalSession {
     }
 }
 
-Invoke-LocalSession $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject
+Invoke-LocalSession $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject $CollectFiles

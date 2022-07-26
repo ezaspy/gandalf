@@ -1,40 +1,45 @@
 <#
  .Synopsis
  Collects forensic artefacts on Windows hosts; compatible with elrond
- Version: 0.1
+ Version: 1.0
  Author : ezaspy
  License: MIT
  .Description
  Collects digital forensic artefacts from Windows hosts. Output is compatible
-  with elrond ()
+  with elrond (https://github.com/ezaspy/elrond)
  .Parameter EncryptionObject
- Method of encryption used for archive file
+ Method of encryption used for archive file - Key, Password or None
  .Parameter Acquisition
  Method of acquisition - either Remote or Local
  .Parameter OutputDirectory
  Destination directory of where the collected will be stored
+ .Parameter Memory
+ Collect a memory dump
+ .Parameter ShowProgress
+ Print progress of individual artefact acquisition to screen
+ .Parameter CollectFiles
+ Collect files containing string (provided in files.list) in file name
  .Example
  The following example invokes all of the parameters with the default arguments;
-  -Acquisition Local -EncryptionObject Key -OutputDirectory .\
+   -EncryptionObject Key -Acquisition Local -OutputDirectory C:\TEMP\gandalf\gandalf
   PS C:\> .\Enter-Gandalf.ps1
  .Example
  The following example invokes all of the parameters with the default arguments;
   explicitly stated:
-  PS C:\> .\Enter-Gandalf.ps1 -Acquisition Local -EncryptionObject Key -OutputDirectory C:\TEMP\Gandalf
+  PS C:\> .\Enter-Gandalf.ps1 -EncryptionObject Key -Acquisition Local -OutputDirectory C:\TEMP\gandalf\gandalf
  .Example
  The following example invokes all of the parameters with non-default arguments;
   deployment against a remote host, specified by IP or Hostname, a (less secure) 
   password-protected package, and outputted to the root directory on the D: drive.
-  PS C:\> .\Gandalf.ps1 -Acquisition <REMOTE_HOST> -EncryptionObject Password -OutputDirectory D:
+  PS C:\> .\Gandalf.ps1 -EncryptionObject Password -Acquisition <REMOTE_HOST> -OutputDirectory D: -Memory -ShowProgress
 #>
 Param(
     [Parameter(Mandatory = $True, Position = 0)][string]$EncryptionObject,
     [Parameter(Position = 1)][string]$Acquisition,
     [Parameter(Position = 2)][string]$OutputDirectory,
     [Parameter(Position = 3)][switch]$Memory,
-    [Parameter(Position = 4)][switch]$ShowProgress
-    #[Parameter(Position = 5)][switch]$Quiet
-    #[Parameter(Position = 6)][switch]$CollectFiles
+    [Parameter(Position = 4)][switch]$ShowProgress,
+    [Parameter(Position = 5)][switch]$CollectFiles
 )
 
 function Format-Art {
@@ -126,34 +131,6 @@ function Format-Time {
     return $ElapsedTime
 }
 
-function Get-Modules {
-    Param ($EncryptionObject)
-    if (Get-Module -ListAvailable -Name 7Zip4PowerShell) {
-        Write-Host "     Great! PowerShell module '7Zip4PowerShellModule' is already installed"
-    } 
-    else {
-        Write-Host "    Attempting to install additional modules..."
-        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -WarningVariable NuGetSTDOUT -WarningAction SilentlyContinue -ErrorVariable SilentlyContinue > $null 2>&1
-        $NuGetSTDOUT = $($NuGetSTDOUT -join " ")
-        if ($NuGetSTDOUT | Select-String -Pattern "Unable to download from URI") {
-            Write-Host "`n     Unable to download required modules. If you are unable to connect to the`n      Internet, you will need to use the switch -EncryptionObject with 'None'`n      Please try again.`n`n"
-            Exit
-        }
-        else {
-            if ($EncryptionObject -eq "Password") {
-                if (Get-Module -ListAvailable -Name PoShKeePass) {
-                    Write-Host "     Great! PowerShell module 'PoShKeePass' is already installed"
-                }
-                else {
-                    Install-Module -Name PoShKeePass -Force
-                }
-            }
-            Install-Module -Name 7Zip4PowerShell -Force
-            Write-Host "     Additional modules installed successfully"
-        }
-    }
-}
-
 function Set-Defaults {
     Param ($EncryptionObject, $Acquisition, $OutputDirectory)
     if ($null -eq $Acquisition -Or $Acquisition -eq "" -Or $Acquisition -eq "Local") {
@@ -215,8 +192,8 @@ function Set-Defaults {
 }
 
 function Set-ArtefactParams {
-    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $Hostname, $ArchiveObject)
-    $ArtefactParams = "Param(`$EncryptionObject = '$EncryptionObject', `$OutputDirectory = '$OutputDirectory', `$ShowProgress = '$ShowProgress', `$Memory = '$Memory', `$Hostname = '$Hostname', `$ArchiveObject = '$ArchiveObject')"
+    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $Hostname, $ArchiveObject, $CollectFiles)
+    $ArtefactParams = "Param(`$EncryptionObject = '$EncryptionObject', `$OutputDirectory = '$OutputDirectory', `$ShowProgress = '$ShowProgress', `$Memory = '$Memory', `$Hostname = '$Hostname', `$ArchiveObject = '$ArchiveObject', `$CollectFiles = '$CollectFiles')"
     Add-Content -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Value $ArtefactParams
     $ArtefactCollection = Get-Content -Path "C:\TEMP\gandalf\gandalf\shire\Set-ArtefactCollection"
     Add-Content -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Value $ArtefactCollection
@@ -273,16 +250,16 @@ Write-Host `r
 if ($Acquisition -eq "Local") {
     $Hostlist = $env:COMPUTERNAME
     ForEach ($Hostname in $Hostlist) {
-        Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject
+        Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject $CollectFiles
         C:\TEMP\gandalf\gandalf\tools\.\Invoke-ArtefactAcquisition.ps1
-        Remove-Item -Path $OutputDirectory\$Hostname\artefacts -Recurse > $null
+        #Remove-Item -Path $OutputDirectory\$Hostname\artefacts -Recurse > $null
     }
 }
 else {
     $RemoteCredentials = $host.ui.PromptForCredential("Local Admin authentication required", "Please enter credentials for PowerShell remoting", "", "")
     $Hostlist = Get-Content "C:\TEMP\gandalf\gandalf\shire\hosts.list"
     ForEach ($Hostname in $Hostlist) {
-        Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject
+        Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject $CollectFiles
         Write-Host "     Attempting to connect to '$Hostname'..."
         $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials
         Write-Host "      Session opened for '$Hostname'"
@@ -296,7 +273,7 @@ $EndTime = [convert]::ToInt32($EndTime)
 $TimeDifference = $EndTime - $StartTime
 $ElapsedTime = Format-Time $TimeDifference
 Write-Host "`n`n  -> Finished. Total elapsed time: $ElapsedTime`n    ----------------------------------------" -Foreground Gray
-Write-Host "      Completed artefact acquisition for:"
+Write-Host "      gandalf completed for:"
 ForEach ($EachHost in $Hostlist) {
     Write-Host "       - $Hostname"
 }
