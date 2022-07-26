@@ -119,7 +119,8 @@ Other Projects: [https://github.com/ezaspy/](https://github.com/ezaspy/)
 - [SANS](https://www.sans.org)<br>
 - [7Zip4PowerShell](https://www.powershellgallery.com/packages/7Zip4Powershell/2.2.0)<br>
 - [TheSleuthKit](https://sleuthkit.org/)<br>
-- [DumpIt](https://github.com/Crypt2Shell/Comae-Toolkit)<br><br>
+- [DumpIt](https://github.com/Crypt2Shell/Comae-Toolkit)<br>
+- [RawCopy](https://github.com/jschicht/RawCopy)<br><br>
 - Documentation
   - [Best-README-Template](https://github.com/othneildrew/Best-README-Template)
   - [hatchful](https://hatchful.shopify.com)

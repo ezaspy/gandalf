@@ -202,13 +202,7 @@ function Set-ArtefactParams {
 function Invoke-RemoteArtefactCollection {
     Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $DriveLetter, $Hostname, $Session, $ArchiveObject)
     Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\tools -ItemType Directory > $null }
-    if ($Memory) {
-        Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools" -Destination "C:\TEMP\gandalf\gandalf\tools" -Force -Recurse
-    }
-    else {
-        Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\icat-sk-4.11.1-win32.zip" -Destination "C:\TEMP\gandalf\gandalf\tools\icat-sk-4.11.1-win32.zip" -Force
-    }
-    Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\README.md" -Destination "C:\TEMP\gandalf\README.md" -Force; Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\LICENSE" -Destination "C:\TEMP\gandalf\LICENSE" -Force; Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Destination "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Force
+    Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\tools.zip" -Destination "C:\TEMP\gandalf\gandalf\tools\tools.zip" -Force -Recurse; Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Destination "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Force
     Invoke-Command -Session $Session -FilePath C:\TEMP\gandalf\gandalf\tools\.\Invoke-ArtefactAcquisition.ps1
     Remove-PSSession -Session $Session
     Invoke-RemoteArchiveCollection $OutputDirectory $Hostname $ArchiveObject

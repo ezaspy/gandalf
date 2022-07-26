@@ -13,12 +13,12 @@ function Get-Artefacts {
         Param ($ShowProgress, $Memory, $OutputDirectory, $Hostname)
         function Get-Memory { 
             Param ($ShowProgress, $OutputDirectory, $Hostname)
-            $global:ProgressPreference = "SilentlyContinue"
             $Architecture = Get-ComputerInfo | Select-Object OsArchitecture
             $Architecture = Out-String -InputObject $Architecture
             $Architecture = $Architecture -Replace '[\S\s]+(\d{2})-bit[\S\s]+', '$1'
             try { 
                 Write-Progress "Acquiring raw memory dump from '$Hostname'..."
+                $global:ProgressPreference = "SilentlyContinue"
                 if ($Architecture -eq "64") { 
                     $dumpit = { .\tools\DumpIt.exe /O .\$OutputDirectory\$Hostname\artefacts\artefacts\raw\memory\$Hostname.raw /C /N /Q }
                 }
@@ -26,6 +26,7 @@ function Get-Artefacts {
                     $dumpit = { .\tools\DumpItx86.exe /O .\$OutputDirectory\$Hostname\artefacts\artefacts\raw\memory\$Hostname.raw /C /N /Q }
                 }
                 Invoke-Command -ScriptBlock $dumpit > $null 2>&1
+                $global:ProgressPreference = "Continue"
                 Write-Host "       Acquired raw memory dump from '$Hostname'" -ForegroundColor Green
                 $Message = "acquired live memory dump (raw) from '$Hostname'"
                 Add-LogEntry $ShowProgress $OutputDirectory $Hostname "$Hostname.raw" $Message
@@ -33,7 +34,6 @@ function Get-Artefacts {
             catch { 
                 Write-Host "      FAILURE: memory dump could not be collected." -ForegroundColor Red
             }
-            $global:ProgressPreference = "Continue"
         }
         function Get-SystemInfo { 
             Param ($ShowProgress, $OutputDirectory, $Hostname)
@@ -136,28 +136,86 @@ function Get-Artefacts {
     }
     function Get-Core { 
         Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
-        Write-Progress "Acquiring `$MFT from '$Hostname'..."
         $global:ProgressPreference = "SilentlyContinue"
-        Expand-Archive -LiteralPath "$OutputDirectory\tools\icat-sk-4.11.1-win32.zip" -DestinationPath "$OutputDirectory\tools\icat"
-        $icat = { C:\TEMP\gandalf\gandalf\tools\icat\bin\icat.exe \\.\c: 0 > $OutputDirectory\$Hostname\artefacts\artefacts\raw\`$MFT }
-        Invoke-Command -ScriptBlock $icat
-        Remove-Item "$OutputDirectory\tools\icat" -Recurse -Force
+        Expand-Archive -LiteralPath "$OutputDirectory\tools\tools.zip" -DestinationPath "$OutputDirectory\tools"
         $global:ProgressPreference = "Continue"
-        Write-Host "       Acquired `$MFT from '$Hostname'" -ForegroundColor Green
-        $Message = "acquired '`$MFT' from '$Hostname'"
-        Add-LogEntry $ShowProgress $OutputDirectory $Hostname $ArtefactFile $Message
-        $Artefacts = @("hiberfil.sys", "pagefile.sys", "Windows\AppCompat\Programs\Amcache.hve", "Windows\INF\setupapi.dev.log")
-        ForEach ($Artefact in $Artefacts) { 
-            $ArtefactFile = $Artefact.Split("\\")[-1]
-            Write-Progress "Acquiring $ArtefactFile from '$Hostname'..."
+        # Acquiring MFT
+        try { 
+            Write-Progress "Acquiring `$MFT from '$Hostname'..."
+            $global:ProgressPreference = "SilentlyContinue"
+            Expand-Archive -LiteralPath "$OutputDirectory\tools\icat-sk-4.11.1-win32.zip" -DestinationPath "$OutputDirectory\tools\icat"
+            $icat = { C:\TEMP\gandalf\gandalf\tools\icat\bin\icat.exe \\.\c: 0 > $OutputDirectory\$Hostname\artefacts\artefacts\raw\`$MFT }
+            Invoke-Command -ScriptBlock $icat
+            Remove-Item "$OutputDirectory\tools\icat" -Recurse -Force
+            $global:ProgressPreference = "Continue"
+            Write-Host "       Acquired `$MFT from '$Hostname'" -ForegroundColor Green
+            $Message = "acquired '`$MFT' from '$Hostname'"
+            Add-LogEntry $ShowProgress $OutputDirectory $Hostname $ArtefactFile $Message
+        }
+        catch { 
+            Write-Host "      FAILURE: '`$MFT' could not be collected." -ForegroundColor Red
+        }
+        Write-Progress -Activity "_" -Completed
+        $global:ProgressPreference = "SilentlyContinue"
+        $Architecture = Get-ComputerInfo | Select-Object OsArchitecture
+        $Architecture = Out-String -InputObject $Architecture
+        $Architecture = $Architecture -Replace '[\S\s]+(\d{2})-bit[\S\s]+', '$1'
+        $global:ProgressPreference = "Continue"
+        # Acquiring UserAccessLogs
+        if (Test-Path -LiteralPath \C:\Windows\System32\LogFiles\Sum) {
             try { 
-                Copy-Item $DriveLetter\$Artefact -Destination $OutputDirectory\$Hostname\artefacts\artefacts\raw\ -Force -ErrorAction SilentlyContinue
-                Write-Host "       Acquired '$ArtefactFile' from '$Hostname'" -ForegroundColor Green
-                $Message = "acquired '$ArtefactFile' from '$Hostname'"
-                Add-LogEntry $ShowProgress $OutputDirectory $Hostname $Artefact $Message
+                Write-Progress "Acquiring User Access Logs from '$Hostname'..."
+                $GUIDFile = "_"
+                if ($Architecture -eq "64") { 
+                    $RawCopyUALCurrent = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\Current.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\Current.mdb }
+                    $RawCopyUALSystemID = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\SystemIdentity.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\SystemIdentity.mdb }
+                    $RawCopyUALGUID = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\GUIDFile.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\$GUIDFile }
+                }
+                else { 
+                    $RawCopyUALCurrent = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\Current.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\Current.mdb }
+                    $RawCopyUALSystemID = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\SystemIdentity.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\SystemIdentity.mdb }
+                    $RawCopyUALGUID = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\`{GUID`}.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\$GUIDFile }
+                }
+                $global:ProgressPreference = "SilentlyContinue"
+                Invoke-Command -ScriptBlock $RawCopyUALCurrent > $null 2>&1
+                Invoke-Command -ScriptBlock $RawCopyUALSystemID > $null 2>&1
+                Invoke-Command -ScriptBlock $RawCopyUALGUID > $null 2>&1
+                $global:ProgressPreference = "Continue"
+                Write-Host "       Acquired User Access Logs from '$Hostname'" -ForegroundColor Green
+                $Message = "acquired User Access Logs from '$Hostname'"
+                Add-LogEntry $ShowProgress $OutputDirectory $Hostname "$Hostname.raw" $Message
             }
             catch { 
-                Write-Host "      FAILURE: $DriveLetter\$Artefact could not be collected; it may be being used by another process." -ForegroundColor Red
+                Write-Host "      FAILURE: User Access Logs could not be collected." -ForegroundColor Red
+            }
+            Write-Progress -Activity "_" -Completed
+        }
+        $global:ProgressPreference = "Continue"
+        $Artefacts = @("hiberfil.sys", "pagefile.sys", "Windows\AppCompat\Programs\Amcache.hve", "Windows\INF\setupapi.dev.log", "Windows\System32\sru\SRUDB.dat")
+        ForEach ($Artefact in $Artefacts) { 
+            $ArtefactFile = $Artefact.Split("\\")[-1]
+            if (Test-Path -LiteralPath C:\$Artefact) {
+                try { 
+                    Write-Progress "Acquiring '$ArtefactFile' from '$Hostname'..."
+                    if ($Architecture -eq "64") { 
+                        $RawCopy = { .\tools\RawCopy64.exe /FileNamePath:C:\$Artefact /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
+                    }
+                    else { 
+                        $RawCopy = { .\tools\RawCopy.exe /FileNamePath:C:\$Artefact /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
+                    }
+                    $global:ProgressPreference = "SilentlyContinue"
+                    Invoke-Command -ScriptBlock $RawCopy > $null 2>&1
+                    $global:ProgressPreference = "Continue"
+                    if (Test-Path -LiteralPath $OutputDirectory\$Hostname\artefacts\artefacts\raw\$ArtefactFile) {
+                        Write-Host "       Acquired $ArtefactFile from '$Hostname'" -ForegroundColor Green
+                        $Message = "acquired '$ArtefactFile' from '$Hostname'"
+                        Add-LogEntry $ShowProgress $OutputDirectory $Hostname $ArtefactFile $Message
+                    }
+                }
+                catch { 
+                    Write-Host "      FAILURE: '$Artefact' could not be collected." -ForegroundColor Red
+                }
+                Write-Progress -Activity "_" -Completed
             }
         }
     }
@@ -284,7 +342,7 @@ function Get-Artefacts {
             Write-Host "      FAILURE: prefetch files could not be collected; they may be being used by another process." -ForegroundColor Red
         }
     }
-    function Get-Users { 
+    function Get-UserArtefacts { 
         Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
         function Get-Jumplists { 
             Param ($ShowProgress, $OutputDirectory, $Hostname, $UserDirs)
@@ -373,9 +431,40 @@ function Get-Artefacts {
                 Write-Host "      FAILURE: '$User' browser files could not be collected; they may be being used by another process." -ForegroundColor Red
             }
         }
+        function Get-Clipboard { 
+            Param ($ShowProgress, $DriveLetter, $Hostname, $UserDirs)
+            try {
+                Write-Progress "Acquiring clipboard artefacts for '$User' from '$Hostname'..."
+                $UserClipboards = @()
+                ForEach ($User in Get-ChildItem -Path $UserDirs -ErrorAction SilentlyContinue -ErrorVariable PermissionDenied) { 
+                    ForEach ($UserArtefact in Get-ChildItem -Path $User.FullName -Force -Recurse -ErrorAction SilentlyContinue -ErrorVariable PermissionDenied) { 
+                        if ($UserArtefact.FullName.Contains("AppData\Local\ConnectedDevicesPlatform\") -And ((Get-Item $UserArtefact.FullName) -is [System.IO.DirectoryInfo]) -eq "True") { 
+                            ForEach ($ClipboardArtefact in Get-ChildItem -Path $UserArtefact.FullName -Force -Recurse -ErrorAction SilentlyContinue -ErrorVariable PermissionDenied) { 
+                                try { 
+                                    Copy-Item $ClipboardArtefact.FullName -Destination $OutputDirectory\$Hostname\artefacts\artefacts\raw\clipboard\$User+$ClipboardArtefact -Force -ErrorAction SilentlyContinue
+                                    $Message = "acquired clipboard artefact '$ClipboardArtefact' for '$User' from '$Hostname'"
+                                    Add-LogEntry $ShowProgress $OutputDirectory $Hostname $ClipboardArtefact $Message
+                                }
+                                catch { 
+                                    Write-Host "      FAILURE: '$ClipboardArtefact' for '$User' could not be collected; it may be being used by another process." -ForegroundColor Red
+                                }
+                            }
+                            $UserClipboards += , $User
+                        }
+                    }
+                }
+            }
+            catch {
+                Write-Host "      FAILURE: '$User' clipboard artefacts could not be collected; they may be being used by another process." -ForegroundColor Red
+            }
+            ForEach ($UserClipboard in $UserClipboards) { 
+                Write-Host "       Acquired clipboard evidence for '$UserClipboard' from '$Hostname'" -ForegroundColor Green
+            }
+        }
         $UserDirs = @("$DriveLetter\Users\")
         Get-Jumplists $ShowProgress $OutputDirectory $Hostname $UserDirs
         Get-Browsers $ShowProgress $OutputDirectory $Hostname $UserDirs
+        Get-Clipboard $ShowProgress $OutputDirectory $Hostname $UserDirs
     }
     Get-Volatile $ShowProgress $Memory $OutputDirectory $Hostname
     Get-Core $ShowProgress $DriveLetter $OutputDirectory $Hostname
@@ -383,7 +472,7 @@ function Get-Artefacts {
     Get-Registry $ShowProgress $OutputDirectory $Hostname
     Get-Winevt $ShowProgress $DriveLetter $OutputDirectory $Hostname
     Get-Prefetch $ShowProgress $DriveLetter $OutputDirectory $Hostname
-    Get-Users $ShowProgress $DriveLetter $OutputDirectory $Hostname
+    Get-UserArtefacts $ShowProgress $DriveLetter $OutputDirectory $Hostname
     Write-Progress -Activity "_" -Completed
 }
 
@@ -471,21 +560,20 @@ function Optimize-Archive {
     function Remove-Directories {
         Param ($OutputDirectory, $Hostname)
         $EmptyDirectories = @()
-        ForEach ($SubDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname -Directory) {
-            $SubFiles = (Get-ChildItem $OutputDirectory\$Hostname\$SubDirectory | Measure-Object).Count
+        ForEach ($SubDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname\artefacts\artefacts\raw -Directory) {
+            $SubFiles = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory | Measure-Object).Count
             $SubFiles = [convert]::ToInt32($SubFiles)
             if ($SubFiles -eq 0) {
-                $EmptyDirectories += , $SubDirectory.FullName
+                if (-Not ($SubDirectory.FullName.Endswith("browsers"))) {
+                    $EmptyDirectories += , $SubDirectory.FullName
+                }
             }
-            else {
-                $SubDirectory = [convert]::ToString($SubDirectory)
-                if ($SubDirectory -eq "browsers") {
-                    ForEach ($BrowserDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname\$SubDirectory -Directory) {
-                        $BrowserFiles = (Get-ChildItem $OutputDirectory\$Hostname\$SubDirectory\$BrowserDirectory | Measure-Object).Count
-                        $BrowserFiles = [convert]::ToInt32($BrowserFiles)
-                        if ($BrowserFiles -eq 0) {
-                            $EmptyDirectories += , $BrowserDirectory.FullName
-                        }
+            if ($SubDirectory.FullName.Endswith("browsers")) {
+                ForEach ($BrowserDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory -Directory) {
+                    $BrowserFiles = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory\$BrowserDirectory | Measure-Object).Count
+                    $BrowserFiles = [convert]::ToInt32($BrowserFiles)
+                    if ($BrowserFiles -eq 0) {
+                        $EmptyDirectories += , $BrowserDirectory.FullName
                     }
                 }
             }
@@ -495,7 +583,6 @@ function Optimize-Archive {
         }
     }
     Remove-Directories $OutputDirectory $Hostname # remove empty artefact directories
-    Remove-Directories $OutputDirectory $Hostname # remove empty browser artefact directories
     $Result = (Get-ChildItem $OutputDirectory\$Hostname | Measure-Object).Count
     $Result = [convert]::ToInt32($Result)
     return $Result
@@ -533,12 +620,13 @@ function New-Archive {
     Write-Host "       Successfully created '$ArchiveFile'" -ForegroundColor White
     $Message = "archived artefacts from '$Hostname'"
     Add-LogEntry $ShowProgress $OutputDirectory $Hostname $ArchiveFile $Message
+    Remove-Item -Path $SourcePath -Recurse > $null
 }
 
 function New-Directories {
     Param ($OutputDirectory, $Hostname)
     $DriveLetter = $env:SystemDrive
-    New-Item -Path $OutputDirectory\$Hostname -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\wmi -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\memory -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\registry -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\evt -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\prefetch -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\jumplists -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\edge -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\chrome -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\firefox -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\wmi -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\memory -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\registry -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\evt -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\prefetch -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\jumplists -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\edge -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\chrome -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\firefox -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\clipboard -ItemType Directory > $null
     return $DriveLetter
 }
 
