@@ -617,7 +617,7 @@ function New-Archive {
         Compress-7Zip -Path $SourcePath -ArchiveFileName $ArchiveFile -Format SevenZip -Password $ArchiveObject -EncryptFilenames
     }
     $ArchiveFile = $ArchiveFile.Split("\\")[-1]
-    Write-Host "       Successfully created '$ArchiveFile'" -ForegroundColor White
+    Write-Host "      Successfully created '$ArchiveFile'" -ForegroundColor White
     $Message = "archived artefacts from '$Hostname'"
     Add-LogEntry $ShowProgress $OutputDirectory $Hostname $ArchiveFile $Message
     Remove-Item -Path $SourcePath -Recurse > $null
