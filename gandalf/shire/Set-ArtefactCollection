@@ -550,7 +550,7 @@ function Invoke-LocalSession {
     $Message = "commencing artefact acquisition from '$Hostname'"
     Add-LogEntry $ShowProgress $OutputDirectory $Hostname "acquisition_commenced" $Message
     Get-Platform $ShowProgress $DriveLetter $OutputDirectory $Hostname
-    #Get-Artefacts $ShowProgress $Memory $DriveLetter $OutputDirectory $Hostname
+    Get-Artefacts $ShowProgress $Memory $DriveLetter $OutputDirectory $Hostname
     if ($CollectFiles -And $CollectFiles -ne "False") {
         $Message = "commencing file collection from '$Hostname'"
         Add-LogEntry $ShowProgress $OutputDirectory $Hostname "file_collection_commenced" $Message
