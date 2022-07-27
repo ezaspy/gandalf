@@ -162,24 +162,17 @@ function Get-Artefacts {
         $Architecture = $Architecture -Replace '[\S\s]+(\d{2})-bit[\S\s]+', '$1'
         $global:ProgressPreference = "Continue"
         # Acquiring UserAccessLogs
-        if (Test-Path -LiteralPath \C:\Windows\System32\LogFiles\Sum) {
+        if (Test-Path -LiteralPath "C:\Windows\System32\LogFiles\Sum") {
             try { 
                 Write-Progress "Acquiring User Access Logs from '$Hostname'..."
-                $GUIDFile = "_"
                 if ($Architecture -eq "64") { 
-                    $RawCopyUALCurrent = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\Current.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\Current.mdb }
-                    $RawCopyUALSystemID = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\SystemIdentity.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\SystemIdentity.mdb }
-                    $RawCopyUALGUID = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\GUIDFile.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\$GUIDFile }
+                    $RawCopyUAL = { .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\*.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
                 }
                 else { 
-                    $RawCopyUALCurrent = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\Current.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\Current.mdb }
-                    $RawCopyUALSystemID = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\SystemIdentity.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\SystemIdentity.mdb }
-                    $RawCopyUALGUID = { Start /wait .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\`{GUID`}.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw\$GUIDFile }
+                    $RawCopyUAL = { .\tools\RawCopy.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\*.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
                 }
                 $global:ProgressPreference = "SilentlyContinue"
-                Invoke-Command -ScriptBlock $RawCopyUALCurrent > $null 2>&1
-                Invoke-Command -ScriptBlock $RawCopyUALSystemID > $null 2>&1
-                Invoke-Command -ScriptBlock $RawCopyUALGUID > $null 2>&1
+                Invoke-Command -ScriptBlock $RawCopyUAL > $null 2>&1
                 $global:ProgressPreference = "Continue"
                 Write-Host "       Acquired User Access Logs from '$Hostname'" -ForegroundColor Green
                 $Message = "acquired User Access Logs from '$Hostname'"
@@ -478,32 +471,40 @@ function Get-Artefacts {
 
 function Get-Files {
     Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
-    $Filelist = Get-Content "C:\TEMP\gandalf\gandalf\shire\files.list"
+    $Filelist = Get-Content "C:\TEMP\gandalf\gandalf\tools\files.list"
     ForEach ($Filename in $Filelist) {
-        Write-Progress "Searching '$Hostname' for '$Filename'..."
-        $Files = Get-ChildItem -Path $DriveLetter\ -Filter $Filename -Recurse -ErrorAction SilentlyContinue -Force
-        $Fullfiles = $Files.FullName
-        if ($null -ne $Fullfiles) {
-            ForEach ($Fullfile in $Fullfiles) {
-                if (-Not ($Fullfile | Select-String -Pattern "TEMP\gandalf\" -SimpleMatch)) {
-                    Write-Host "       Found '$Fullfile'"
-                    $FileDirectory = $Fullfile.Split("\\")[-2]
-                    $File = $Fullfile.Split("\\")[-1]
-                    if (-Not (Test-Path -LiteralPath $FileDirectory)) {
-                        New-Item -Path $OutputDirectory\$Hostname\artefacts\files\$FileDirectory\ -ItemType Directory -Force -ErrorAction SilentlyContinue > $null
-                    }
-                    try { 
-                        Copy-Item $Fullfile -Destination $OutputDirectory\$Hostname\artefacts\files\$FileDirectory\$File -Force -ErrorAction SilentlyContinue
-                        Write-Host "        Collected '$Fullfile'" -ForegroundColor Green
-                        $Message = "collected '$Fullfile' from '$Hostname'"
-                        Add-LogEntry $ShowProgress $OutputDirectory $Hostname "collected_file" $Message
-                    }
-                    catch { 
-                        Write-Host "      FAILURE: '$Fullfile' could not be collected; it may be being used by another process." -ForegroundColor Red
+        if (-Not ($Filename.Startswith("#"))) {
+            Write-Progress "Searching '$Hostname' for '$Filename'..."
+            $Files = Get-ChildItem -Path $DriveLetter\ -Filter $Filename -Recurse -ErrorAction SilentlyContinue -Force
+            $Fullfiles = $Files.FullName
+            if ($null -ne $Fullfiles) {
+                ForEach ($Fullfile in $Fullfiles) {
+                    if (-Not ($Fullfile | Select-String -Pattern "TEMP\gandalf\" -SimpleMatch)) {
+                        Write-Host "       Found '$Fullfile'"
+                        $FileDirectory = $Fullfile.Split("\\")[-2]
+                        $File = $Fullfile.Split("\\")[-1]
+                        if (-Not (Test-Path -LiteralPath $FileDirectory)) {
+                            New-Item -Path $OutputDirectory\$Hostname\artefacts\files\$FileDirectory\ -ItemType Directory -Force -ErrorAction SilentlyContinue > $null
+                        }
+                        try { 
+                            Copy-Item $Fullfile -Destination $OutputDirectory\$Hostname\artefacts\files\$FileDirectory\$File -Force -ErrorAction SilentlyContinue
+                            Write-Host "        Collected '$Fullfile'" -ForegroundColor Green
+                            $Message = "collected '$Fullfile' from '$Hostname'"
+                            Add-LogEntry $ShowProgress $OutputDirectory $Hostname "collected_file" $Message
+                        }
+                        catch { 
+                            Write-Host "      FAILURE: '$Fullfile' could not be collected; it may be being used by another process." -ForegroundColor Red
+                        }
                     }
                 }
             }
         }
+    }
+    $FileCount = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\files\$FileDirectory | Measure-Object).Count
+    if ($FileCount -eq 0) {
+        Write-Host "       No files collected for '$Hostname'"
+        $Message = "no files collected from '$Hostname'"
+        Add-LogEntry $ShowProgress $OutputDirectory $Hostname "collected_file" $Message
     }
 }
 

@@ -246,19 +246,18 @@ if ($Acquisition -eq "Local") {
     ForEach ($Hostname in $Hostlist) {
         Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject $CollectFiles
         C:\TEMP\gandalf\gandalf\tools\.\Invoke-ArtefactAcquisition.ps1
-        #Remove-Item -Path $OutputDirectory\$Hostname\artefacts -Recurse > $null
     }
 }
 else {
     $RemoteCredentials = $host.ui.PromptForCredential("Local Admin authentication required", "Please enter credentials for PowerShell remoting", "", "")
-    $Hostlist = Get-Content "C:\TEMP\gandalf\gandalf\shire\hosts.list"
+    $Hostlist = Get-Content "C:\TEMP\gandalf\gandalf\tools\hosts.list"
     ForEach ($Hostname in $Hostlist) {
         Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject $CollectFiles
         Write-Host "     Attempting to connect to '$Hostname'..."
         $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials
         Write-Host "      Session opened for '$Hostname'"
         Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $DriveLetter $Hostname $Session $ArchiveObject
-        #Linux hosts - Invoke-Command -HostName UserA@LinuxServer01 -ScriptBlock { Get-MailBox * } -KeyFilePath /UserA/UserAKey_rsa
+        #XPC - Linux hosts - Invoke-Command -HostName UserA@LinuxServer01 -ScriptBlock { Get-MailBox * } -KeyFilePath /UserA/UserAKey_rsa
     }
 }
 $DateTime = "{0}" -f (Get-Date)
