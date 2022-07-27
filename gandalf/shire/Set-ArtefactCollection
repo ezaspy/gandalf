@@ -473,9 +473,9 @@ function Get-Artefacts {
         function Get-Clipboard { 
             Param ($ShowProgress, $DriveLetter, $Hostname, $UserDirs)
             try {
-                Write-Progress "Acquiring clipboard artefacts for '$User' from '$Hostname'..."
                 $UserClipboards = @()
                 ForEach ($User in Get-ChildItem -Path $UserDirs -ErrorAction SilentlyContinue -ErrorVariable PermissionDenied) { 
+                    Write-Progress "Acquiring clipboard artefacts for '$User' from '$Hostname'..."
                     ForEach ($UserArtefact in Get-ChildItem -Path $User.FullName -Force -Recurse -ErrorAction SilentlyContinue -ErrorVariable PermissionDenied) { 
                         if ($UserArtefact.FullName.Contains("AppData\Local\ConnectedDevicesPlatform\") -And ((Get-Item $UserArtefact.FullName) -is [System.IO.DirectoryInfo]) -eq "True") { 
                             ForEach ($ClipboardArtefact in Get-ChildItem -Path $UserArtefact.FullName -Force -Recurse -ErrorAction SilentlyContinue -ErrorVariable PermissionDenied) { 
@@ -513,13 +513,6 @@ function Get-Artefacts {
     Get-Prefetch $ShowProgress $DriveLetter $OutputDirectory $Hostname
     Get-UserArtefacts $ShowProgress $DriveLetter $OutputDirectory $Hostname
     Write-Progress -Activity "_" -Completed
-    function New-Directories {
-        Param ($OutputDirectory, $Hostname)
-        $DriveLetter = $env:SystemDrive
-        New-Item -Path $OutputDirectory\$Hostname -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\wmi -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\memory -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\registry -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\evt -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\prefetch -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\jumplists -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\edge -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\chrome -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\firefox -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\clipboard -ItemType Directory > $null
-        return $DriveLetter
-    }
-
 }
 
 function Get-Files {
@@ -563,38 +556,6 @@ function Get-Files {
 
 function New-Archive {
     Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Hostname, $Message, $ArchiveObject)
-    function Optimize-Archive {
-        Param ($OutputDirectory, $Hostname)
-        function Remove-Directories {
-            Param ($OutputDirectory, $Hostname)
-            $EmptyDirectories = @()
-            ForEach ($SubDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname\artefacts\artefacts\raw -Directory) {
-                $SubFiles = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory | Measure-Object).Count
-                $SubFiles = [convert]::ToInt32($SubFiles)
-                if ($SubFiles -eq 0) {
-                    if (-Not ($SubDirectory.FullName.Endswith("browsers"))) {
-                        $EmptyDirectories += , $SubDirectory.FullName
-                    }
-                }
-                if ($SubDirectory.FullName.Endswith("browsers")) {
-                    ForEach ($BrowserDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory -Directory) {
-                        $BrowserFiles = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory\$BrowserDirectory | Measure-Object).Count
-                        $BrowserFiles = [convert]::ToInt32($BrowserFiles)
-                        if ($BrowserFiles -eq 0) {
-                            $EmptyDirectories += , $BrowserDirectory.FullName
-                        }
-                    }
-                }
-            }
-            ForEach ($EachDirectory in $EmptyDirectories) {
-                Remove-Item -Path $EachDirectory > $null
-            }
-        }
-        Remove-Directories $OutputDirectory $Hostname # remove empty artefact directories
-        $Result = (Get-ChildItem $OutputDirectory\$Hostname | Measure-Object).Count
-        $Result = [convert]::ToInt32($Result)
-        return $Result
-    }
     Write-Host `r
     $SourcePath = Resolve-Path -Path $OutputDirectory\$Hostname\artefacts
     $ArchivePath = Resolve-Path -Path $OutputDirectory\$Hostname
@@ -626,17 +587,37 @@ function New-Archive {
     Remove-Item -Path $SourcePath -Recurse > $null
 }
 
-function Reset-Modules {
-    Param ($EncryptionObject)
-    if ($EncryptionObject -eq "Key" -Or $EncryptionObject -eq "Password") {
-        try {
-            Uninstall-Module -Name 7Zip4PowerShell -Force
-            Write-Host "     Additional modules removed successfully"
+function Optimize-Archive {
+    Param ($OutputDirectory, $Hostname)
+    function Remove-Directories {
+        Param ($OutputDirectory, $Hostname)
+        $EmptyDirectories = @()
+        ForEach ($SubDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname\artefacts\artefacts\raw -Directory) {
+            $SubFiles = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory | Measure-Object).Count
+            $SubFiles = [convert]::ToInt32($SubFiles)
+            if ($SubFiles -eq 0) {
+                if (-Not ($SubDirectory.FullName.Endswith("browsers"))) {
+                    $EmptyDirectories += , $SubDirectory.FullName
+                }
+            }
+            if ($SubDirectory.FullName.Endswith("browsers")) {
+                ForEach ($BrowserDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory -Directory) {
+                    $BrowserFiles = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory\$BrowserDirectory | Measure-Object).Count
+                    $BrowserFiles = [convert]::ToInt32($BrowserFiles)
+                    if ($BrowserFiles -eq 0) {
+                        $EmptyDirectories += , $BrowserDirectory.FullName
+                    }
+                }
+            }
         }
-        catch {
-            Write-Host "     Additional modules could not be removed"
+        ForEach ($EachDirectory in $EmptyDirectories) {
+            Remove-Item -Path $EachDirectory > $null
         }
     }
+    Remove-Directories $OutputDirectory $Hostname # remove empty artefact directories
+    $Result = (Get-ChildItem $OutputDirectory\$Hostname | Measure-Object).Count
+    $Result = [convert]::ToInt32($Result)
+    return $Result
 }
 
 function Invoke-LocalSession {
@@ -669,7 +650,6 @@ function Invoke-LocalSession {
         Write-Host "`n    Unfortunately, no artefacts could be collected`n`n"
         Exit
     }
-    Reset-Modules $EncryptionObject
 }
 
 Invoke-LocalSession $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject $CollectFiles

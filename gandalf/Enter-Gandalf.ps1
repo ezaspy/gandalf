@@ -131,6 +131,29 @@ function Format-Time {
     return $ElapsedTime
 }
 
+function Reset-Modules {
+    Param ($EncryptionObject, $Session)
+    if ($EncryptionObject -eq "Key" -Or $EncryptionObject -eq "Password") {
+        try {
+            Invoke-Command -Session $Session -ScriptBlock { Uninstall-Module -Name 7Zip4PowerShell -Force }
+            Remove-PSSession -Session $Session
+            Write-Host "     Additional modules removed successfully"
+        }
+        catch {
+            Write-Host "     Additional modules could not be removed"
+        }
+    }
+    else {
+        try {
+            Uninstall-Module -Name 7Zip4PowerShell -Force
+            Write-Host "     Additional modules removed successfully"
+        }
+        catch {
+            Write-Host "     Additional modules could not be removed"
+        }
+    }
+}
+
 function Set-Defaults {
     Param ($EncryptionObject, $Acquisition, $OutputDirectory)
     if ($null -eq $Acquisition -Or $Acquisition -eq "" -Or $Acquisition -eq "Local") {
@@ -218,6 +241,7 @@ function Invoke-RemoteArchiveCollection {
     Remove-Item -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1"
     Remove-PSSession -Session $Session
     Write-Host "   -> Collected acquired artefacts from '$Hostname'"
+    Reset-Modules $EncryptionObject $Session
 }
 
 $DateTime = "{0}" -f (Get-Date)
