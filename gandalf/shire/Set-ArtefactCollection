@@ -33,7 +33,7 @@ function Get-Modules {
             }
             else {
                 Install-Module -Name 7Zip4PowerShell -Force
-                Write-Host "     Additional modules installed successfully"
+                Write-Host "      Additional modules installed successfully" -ForegroundColor Green
             }
         }
     }

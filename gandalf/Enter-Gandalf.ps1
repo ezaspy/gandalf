@@ -137,19 +137,17 @@ function Reset-Modules {
         try {
             Invoke-Command -Session $Session -ScriptBlock { Uninstall-Module -Name 7Zip4PowerShell -Force }
             Remove-PSSession -Session $Session
-            Write-Host "     Additional modules removed successfully"
         }
         catch {
-            Write-Host "     Additional modules could not be removed"
+            Write-Host "`n     Additional modules could not be removed"
         }
     }
     else {
         try {
             Uninstall-Module -Name 7Zip4PowerShell -Force
-            Write-Host "     Additional modules removed successfully"
         }
         catch {
-            Write-Host "     Additional modules could not be removed"
+            Write-Host "`n     Additional modules could not be removed"
         }
     }
 }
@@ -167,7 +165,7 @@ function Set-Defaults {
             Write-Host "     You have chosen to use Key-based encryption but unfortunately this is not yet supported. Please try again`n`n"
             Exit
         }
-        $ConfirmEncryption = Read-Host "     You have chosen to use encryption when archiving the artefacts. Although this is highly recommended, you will need an Internet connection on each endpoint, to download the additional modules.`n      Do you wish to proceed? Y/n [Y] "
+        $ConfirmEncryption = Read-Host "     You have chosen to use encryption when archiving the artefacts. Although this is recommended, you will need an Internet connection on each endpoint, to download the additional modules.`n      Do you wish to proceed? Y/n [Y] "
         if ($ConfirmEncryption -eq "n") {
             Write-Host "      Please try again with the " -NoNewLine; Write-Host "-EncryptionObject" -NoNewLine -Foreground Magenta; Write-Host " parameter set to 'None'`n`n"
             Exit
@@ -234,14 +232,14 @@ function Invoke-RemoteArchiveCollection {
     $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials
     Write-Progress "Collecting acquired artefacts from '$Hostname'..."
     New-Item -Path $OutputDirectory\acquisitions -ItemType Directory > $null; New-Item -Path $OutputDirectory\acquisitions\$Hostname -ItemType Directory > $null
-    Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\log.audit" -Destination "$OutputDirectory\acquisitions\$Hostname\log.audit" -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\meta.audit" -Destination "$OutputDirectory\acquisitions\$Hostname\meta.audit" -Force > $null 2>&1
-    Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\$Hostname.zip" -Destination "$OutputDirectory\acquisitions\$Hostname\$Hostname.zip" -Force > $null 2>&1
-    Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\$Hostname.7z" -Destination "$OutputDirectory\acquisitions\$Hostname\$Hostname.7z" -Force > $null 2>&1
+    Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\log.audit" -Destination "$OutputDirectory\acquisitions\$Hostname\log.audit" -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\meta.audit" -Destination "$OutputDirectory\acquisitions\$Hostname\meta.audit" -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\$Hostname.zip" -Destination "$OutputDirectory\acquisitions\$Hostname\$Hostname.zip" -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\$Hostname.7z" -Destination "$OutputDirectory\acquisitions\$Hostname\$Hostname.7z" -Force > $null 2>&1
+    Write-Host "`n   -> Collected acquired artefacts from '$Hostname'"
+    Write-Progress "Cleaning up '$Hostname'..."
     Invoke-Command -Session $Session -ScriptBlock { Remove-Item -Path C:\TEMP\gandalf -Recurse }
-    Remove-Item -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1"
     Remove-PSSession -Session $Session
-    Write-Host "   -> Collected acquired artefacts from '$Hostname'"
+    $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials
     Reset-Modules $EncryptionObject $Session
+    Write-Progress -Activity "_" -Completed
 }
 
 $DateTime = "{0}" -f (Get-Date)
@@ -277,7 +275,7 @@ else {
         Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject $CollectFiles
         Write-Host "     Attempting to connect to '$Hostname'..."
         $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials
-        Write-Host "      Session opened for '$Hostname'"
+        Write-Host "      Session opened for '$Hostname'" -ForegroundColor Green
         Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $DriveLetter $Hostname $Session $ArchiveObject
         #XPC - Linux hosts - Invoke-Command -HostName UserA@LinuxServer01 -ScriptBlock { Get-MailBox * } -KeyFilePath /UserA/UserAKey_rsa
     }
