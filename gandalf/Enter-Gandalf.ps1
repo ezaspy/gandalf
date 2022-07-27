@@ -228,12 +228,12 @@ Clear-Host
 Format-Art
 $EncryptionObject, $Acquisition, $OutputDirectory = Set-Defaults $EncryptionObject $Acquisition $OutputDirectory
 if ($EncryptionObject -eq "Key") {
-    Get-Modules $EncryptionObject
     $ArchiveObject = Read-Host "     Provide path to PGP Public Key for archive encryption"
 }
 elseif ($EncryptionObject -eq "Password") {
-    Get-Modules $EncryptionObject
     $ArchiveObject = Read-Host "     Enter Password for archive encryption" -AsSecureString
+    $ArchiveObject = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($ArchiveObject)
+    $ArchiveObject = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ArchiveObject)
 }
 else {
     $ArchiveObject = "None"

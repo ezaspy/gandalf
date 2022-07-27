@@ -7,6 +7,52 @@ function Add-LogEntry {
     }
 }
 
+function Get-Metadata {
+    #$DateTime = "{0:o}" -f (Get-Date)
+    $FileHash = Get-FileHash -Algorithm SHA256 $Artefact
+    "$Hostname,$FileHash`n" | Set-Content $OutputDirectory\$Hostname\log.audit
+}
+
+function New-Directories {
+    Param ($OutputDirectory, $Hostname)
+    $DriveLetter = $env:SystemDrive
+    New-Item -Path $OutputDirectory\$Hostname -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\wmi -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\memory -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\registry -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\evt -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\prefetch -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\jumplists -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\edge -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\chrome -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\firefox -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\clipboard -ItemType Directory > $null
+    return $DriveLetter
+}
+
+function Get-Modules {
+    Param ($EncryptionObject)
+    if ($EncryptionObject -eq "Key" -Or $EncryptionObject -eq "Password") {
+        if (-Not (Get-Module -ListAvailable -Name 7Zip4PowerShell)) {
+            Write-Host "`n     Attempting to install additional modules..."
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -WarningVariable NuGetSTDOUT -WarningAction SilentlyContinue -ErrorVariable SilentlyContinue > $null 2>&1
+            $NuGetSTDOUT = $($NuGetSTDOUT -join " ")
+            if ($NuGetSTDOUT | Select-String -Pattern "Unable to download from URI") {
+                Write-Host "`n     Unable to download required modules. If you are unable to connect to the`n      Internet, you will need to use the switch -EncryptionObject with 'None'`n      Please try again.`n`n"
+                Exit
+            }
+            else {
+                Install-Module -Name 7Zip4PowerShell -Force
+                Write-Host "     Additional modules installed successfully"
+            }
+        }
+    }
+}
+
+function Get-Platform {
+    Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
+    if ((Get-ChildItem "$DriveLetter\").Name | Select-String -Pattern "MSOCache") {
+        $Platform = "Windows7"
+    }
+    else {
+        $Platform = "Windows10"
+    }
+    "$Hostname::$Platform`n" | Set-Content $OutputDirectory\$Hostname\artefacts\artefacts\host.info
+    Write-Host "      Identified '$Hostname' as '$Platform'" -ForegroundColor White
+    $Message = "identified '$Hostname' as $Platform"
+    Add-LogEntry $ShowProgress $OutputDirectory $Hostname $Platform $Message
+}
+
 function Get-Artefacts { 
     Param ($ShowProgress, $Memory, $DriveLetter, $OutputDirectory, $Hostname)
     function Get-Volatile { 
@@ -467,6 +513,13 @@ function Get-Artefacts {
     Get-Prefetch $ShowProgress $DriveLetter $OutputDirectory $Hostname
     Get-UserArtefacts $ShowProgress $DriveLetter $OutputDirectory $Hostname
     Write-Progress -Activity "_" -Completed
+    function New-Directories {
+        Param ($OutputDirectory, $Hostname)
+        $DriveLetter = $env:SystemDrive
+        New-Item -Path $OutputDirectory\$Hostname -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\wmi -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\memory -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\registry -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\evt -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\prefetch -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\jumplists -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\edge -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\chrome -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\firefox -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\clipboard -ItemType Directory > $null
+        return $DriveLetter
+    }
+
 }
 
 function Get-Files {
@@ -508,89 +561,40 @@ function Get-Files {
     }
 }
 
-function Get-Metadata {
-    #$DateTime = "{0:o}" -f (Get-Date)
-    $FileHash = Get-FileHash -Algorithm SHA256 $Artefact
-    "$Hostname,$FileHash`n" | Set-Content $OutputDirectory\$Hostname\log.audit
-}
-
-function Get-Modules {
-    Param ($EncryptionObject)
-    if (Get-Module -ListAvailable -Name 7Zip4PowerShell) {
-        Write-Host "     Great! PowerShell module '7Zip4PowerShellModule' is already installed"
-    } 
-    else {
-        Write-Host "    Attempting to install additional modules..."
-        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -WarningVariable NuGetSTDOUT -WarningAction SilentlyContinue -ErrorVariable SilentlyContinue > $null 2>&1
-        $NuGetSTDOUT = $($NuGetSTDOUT -join " ")
-        if ($NuGetSTDOUT | Select-String -Pattern "Unable to download from URI") {
-            Write-Host "`n     Unable to download required modules. If you are unable to connect to the`n      Internet, you will need to use the switch -EncryptionObject with 'None'`n      Please try again.`n`n"
-            Exit
-        }
-        else {
-            if ($EncryptionObject -eq "Password") {
-                if (Get-Module -ListAvailable -Name PoShKeePass) {
-                    Write-Host "     Great! PowerShell module 'PoShKeePass' is already installed"
-                }
-                else {
-                    Install-Module -Name PoShKeePass -Force
-                }
-            }
-            Install-Module -Name 7Zip4PowerShell -Force
-            Write-Host "     Additional modules installed successfully"
-        }
-    }
-}
-
-function Get-Platform {
-    Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
-    if ((Get-ChildItem "$DriveLetter\").Name | Select-String -Pattern "MSOCache") {
-        $Platform = "Windows7"
-    }
-    else {
-        $Platform = "Windows10"
-    }
-    "$Hostname::$Platform`n" | Set-Content $OutputDirectory\$Hostname\artefacts\artefacts\host.info
-    Write-Host "      Identified '$Hostname' as '$Platform'" -ForegroundColor White
-    $Message = "identified '$Hostname' as $Platform"
-    Add-LogEntry $ShowProgress $OutputDirectory $Hostname $Platform $Message
-}
-
-function Optimize-Archive {
-    Param ($OutputDirectory, $Hostname)
-    function Remove-Directories {
+function New-Archive {
+    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Hostname, $Message, $ArchiveObject)
+    function Optimize-Archive {
         Param ($OutputDirectory, $Hostname)
-        $EmptyDirectories = @()
-        ForEach ($SubDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname\artefacts\artefacts\raw -Directory) {
-            $SubFiles = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory | Measure-Object).Count
-            $SubFiles = [convert]::ToInt32($SubFiles)
-            if ($SubFiles -eq 0) {
-                if (-Not ($SubDirectory.FullName.Endswith("browsers"))) {
-                    $EmptyDirectories += , $SubDirectory.FullName
+        function Remove-Directories {
+            Param ($OutputDirectory, $Hostname)
+            $EmptyDirectories = @()
+            ForEach ($SubDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname\artefacts\artefacts\raw -Directory) {
+                $SubFiles = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory | Measure-Object).Count
+                $SubFiles = [convert]::ToInt32($SubFiles)
+                if ($SubFiles -eq 0) {
+                    if (-Not ($SubDirectory.FullName.Endswith("browsers"))) {
+                        $EmptyDirectories += , $SubDirectory.FullName
+                    }
                 }
-            }
-            if ($SubDirectory.FullName.Endswith("browsers")) {
-                ForEach ($BrowserDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory -Directory) {
-                    $BrowserFiles = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory\$BrowserDirectory | Measure-Object).Count
-                    $BrowserFiles = [convert]::ToInt32($BrowserFiles)
-                    if ($BrowserFiles -eq 0) {
-                        $EmptyDirectories += , $BrowserDirectory.FullName
+                if ($SubDirectory.FullName.Endswith("browsers")) {
+                    ForEach ($BrowserDirectory in Get-ChildItem -Force -Literal $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory -Directory) {
+                        $BrowserFiles = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\artefacts\raw\$SubDirectory\$BrowserDirectory | Measure-Object).Count
+                        $BrowserFiles = [convert]::ToInt32($BrowserFiles)
+                        if ($BrowserFiles -eq 0) {
+                            $EmptyDirectories += , $BrowserDirectory.FullName
+                        }
                     }
                 }
             }
+            ForEach ($EachDirectory in $EmptyDirectories) {
+                Remove-Item -Path $EachDirectory > $null
+            }
         }
-        ForEach ($EachDirectory in $EmptyDirectories) {
-            Remove-Item -Path $EachDirectory > $null
-        }
+        Remove-Directories $OutputDirectory $Hostname # remove empty artefact directories
+        $Result = (Get-ChildItem $OutputDirectory\$Hostname | Measure-Object).Count
+        $Result = [convert]::ToInt32($Result)
+        return $Result
     }
-    Remove-Directories $OutputDirectory $Hostname # remove empty artefact directories
-    $Result = (Get-ChildItem $OutputDirectory\$Hostname | Measure-Object).Count
-    $Result = [convert]::ToInt32($Result)
-    return $Result
-}
-
-function New-Archive {
-    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Hostname, $Message, $ArchiveObject)
     Write-Host `r
     $SourcePath = Resolve-Path -Path $OutputDirectory\$Hostname\artefacts
     $ArchivePath = Resolve-Path -Path $OutputDirectory\$Hostname
@@ -613,8 +617,6 @@ function New-Archive {
         if (Test-Path -LiteralPath $ArchiveFile) {
             Remove-Item -Path $ArchiveFile -Recurse > $null
         }
-        $ArchiveObject = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($ArchiveObject)
-        $ArchiveObject = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ArchiveObject)
         Compress-7Zip -Path $SourcePath -ArchiveFileName $ArchiveFile -Format SevenZip -Password $ArchiveObject -EncryptFilenames
     }
     $ArchiveFile = $ArchiveFile.Split("\\")[-1]
@@ -624,15 +626,22 @@ function New-Archive {
     Remove-Item -Path $SourcePath -Recurse > $null
 }
 
-function New-Directories {
-    Param ($OutputDirectory, $Hostname)
-    $DriveLetter = $env:SystemDrive
-    New-Item -Path $OutputDirectory\$Hostname -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\wmi -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\memory -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\registry -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\evt -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\prefetch -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\jumplists -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\edge -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\chrome -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\firefox -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\clipboard -ItemType Directory > $null
-    return $DriveLetter
+function Reset-Modules {
+    Param ($EncryptionObject)
+    if ($EncryptionObject -eq "Key" -Or $EncryptionObject -eq "Password") {
+        try {
+            Uninstall-Module -Name 7Zip4PowerShell -Force
+            Write-Host "     Additional modules removed successfully"
+        }
+        catch {
+            Write-Host "     Additional modules could not be removed"
+        }
+    }
 }
 
 function Invoke-LocalSession {
     Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $Hostname, $ArchiveObject, $CollectFiles)
+    Get-Modules $EncryptionObject
     $DriveLetter = New-Directories $OutputDirectory $Hostname
     "LastWriteTime,gandalf_host,gandalf_stage,gandalf_log_entry" | Set-Content $OutputDirectory\$Hostname\log.audit
     Write-Host "`n  -> Commencing artefact acquisition for: '$Hostname'`n    ----------------------------------------" -Foreground Gray
@@ -660,6 +669,7 @@ function Invoke-LocalSession {
         Write-Host "`n    Unfortunately, no artefacts could be collected`n`n"
         Exit
     }
+    Reset-Modules $EncryptionObject
 }
 
 Invoke-LocalSession $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject $CollectFiles
