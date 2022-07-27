@@ -141,10 +141,10 @@ function Set-Defaults {
     }
     if ($EncryptionObject -eq "Key" -Or $EncryptionObject -eq "Password") {
         if ($EncryptionObject -eq "Key") {
-            Write-Host "     You have chosen to use Key-based encrpytion but unfortunately this is not yet supported. Please try again`n`n"
+            Write-Host "     You have chosen to use Key-based encryption but unfortunately this is not yet supported. Please try again`n`n"
             Exit
         }
-        $ConfirmEncryption = Read-Host "     You have chosen to use encrpytion when archiving the artefacts. Although this is highly recommended, you will need an Internet connection on each endpoint, to download the additional modules.`n      Do you wish to proceed? Y/n [Y] "
+        $ConfirmEncryption = Read-Host "     You have chosen to use encryption when archiving the artefacts. Although this is highly recommended, you will need an Internet connection on each endpoint, to download the additional modules.`n      Do you wish to proceed? Y/n [Y] "
         if ($ConfirmEncryption -eq "n") {
             Write-Host "      Please try again with the " -NoNewLine; Write-Host "-EncryptionObject" -NoNewLine -Foreground Magenta; Write-Host " parameter set to 'None'`n`n"
             Exit
@@ -152,12 +152,10 @@ function Set-Defaults {
         Write-Host `r
     }
     elseif ($EncryptionObject -eq "None") {
-        if ($Acquisition -eq "Local") {
-            $ConfirmNoEncryption = Read-Host "     You have chosen to use no encrpytion when archiving the artefacts. This is not recommended.`n      Are you sure you want to proceed? y/N [N] "
-            if ($ConfirmNoEncryption -ne "y") {
-                Write-Host "      Please try again with the " -NoNewLine; Write-Host "-EncryptionObject" -NoNewLine -Foreground Magenta; Write-Host " parameter set to 'Key' or 'Password'`n`n"
-                Exit
-            }
+        $ConfirmNoEncryption = Read-Host "     You have chosen to use no encryption when archiving the artefacts. This is not recommended.`n      Are you sure you want to proceed? y/N [N] "
+        if ($ConfirmNoEncryption -ne "y") {
+            Write-Host "      Please try again with the " -NoNewLine; Write-Host "-EncryptionObject" -NoNewLine -Foreground Magenta; Write-Host " parameter set to 'Key' or 'Password'`n`n"
+            Exit
         }
     }
     else {
