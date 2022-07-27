@@ -20,10 +20,10 @@ function Get-Artefacts {
                 Write-Progress "Acquiring raw memory dump from '$Hostname'..."
                 $global:ProgressPreference = "SilentlyContinue"
                 if ($Architecture -eq "64") { 
-                    $dumpit = { .\tools\DumpIt.exe /O .\$OutputDirectory\$Hostname\artefacts\artefacts\raw\memory\$Hostname.raw /C /N /Q }
+                    $dumpit = { C:\TEMP\gandalf\gandalf\tools\DumpIt.exe /O .\$OutputDirectory\$Hostname\artefacts\artefacts\raw\memory\$Hostname.raw /C /N /Q }
                 }
                 else { 
-                    $dumpit = { .\tools\DumpItx86.exe /O .\$OutputDirectory\$Hostname\artefacts\artefacts\raw\memory\$Hostname.raw /C /N /Q }
+                    $dumpit = { C:\TEMP\gandalf\gandalf\tools\DumpItx86.exe /O .\$OutputDirectory\$Hostname\artefacts\artefacts\raw\memory\$Hostname.raw /C /N /Q }
                 }
                 Invoke-Command -ScriptBlock $dumpit > $null 2>&1
                 $global:ProgressPreference = "Continue"
@@ -166,10 +166,10 @@ function Get-Artefacts {
             try { 
                 Write-Progress "Acquiring User Access Logs from '$Hostname'..."
                 if ($Architecture -eq "64") { 
-                    $RawCopyUAL = { .\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\*.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
+                    $RawCopyUAL = { C:\TEMP\gandalf\gandalf\tools\RawCopy64.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\*.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
                 }
                 else { 
-                    $RawCopyUAL = { .\tools\RawCopy.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\*.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
+                    $RawCopyUAL = { C:\TEMP\gandalf\gandalf\tools\RawCopy.exe /FileNamePath:C:\Windows\System32\LogFiles\Sum\*.mdb /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
                 }
                 $global:ProgressPreference = "SilentlyContinue"
                 Invoke-Command -ScriptBlock $RawCopyUAL > $null 2>&1
