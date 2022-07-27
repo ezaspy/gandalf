@@ -191,10 +191,10 @@ function Get-Artefacts {
                 try { 
                     Write-Progress "Acquiring '$ArtefactFile' from '$Hostname'..."
                     if ($Architecture -eq "64") { 
-                        $RawCopy = { .\tools\RawCopy64.exe /FileNamePath:C:\$Artefact /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
+                        $RawCopy = { C:\TEMP\gandalf\gandalf\tools\RawCopy64.exe /FileNamePath:C:\$Artefact /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
                     }
                     else { 
-                        $RawCopy = { .\tools\RawCopy.exe /FileNamePath:C:\$Artefact /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
+                        $RawCopy = { C:\TEMP\gandalf\gandalf\tools\RawCopy.exe /FileNamePath:C:\$Artefact /OutputPath:$OutputDirectory\$Hostname\artefacts\artefacts\raw }
                     }
                     $global:ProgressPreference = "SilentlyContinue"
                     Invoke-Command -ScriptBlock $RawCopy > $null 2>&1
@@ -206,7 +206,7 @@ function Get-Artefacts {
                     }
                 }
                 catch { 
-                    Write-Host "      FAILURE: '$Artefact' could not be collected." -ForegroundColor Red
+                    Write-Host "      FAILURE: '$ArtefactFile' could not be collected." -ForegroundColor Red
                 }
                 Write-Progress -Activity "_" -Completed
             }
