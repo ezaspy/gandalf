@@ -49,7 +49,7 @@
 ## About The Project
 
 gandalf has been created to help fellow digitial forensicators with the live collection of forensic artefacts from a Windows, Linux and masOS hosts. Depending on the host OS, either gandalf.ps1 or gandalf.py will be required; to ensure compatibility for Windows and \*nix hosts respectively.
-gandalf will collect all commonly utilised forensic artefacts but it will not process them - this is handled by it's 'brother' script [elrond](https://github.com/ezaspy/elrond), which converts all of the artefacts to either JSON or CSV and can then stand up an on-the-fly Splunk or elastic stack instance whilst mapping evidence within those artefacts to the MITRE ATT&CK® Framework, if desired.
+gandalf will collect all commonly utilised forensic artefacts but it will not process them - this is handled by its 'brother' script [elrond](https://github.com/ezaspy/elrond), which converts all of the artefacts to either JSON or CSV and can then stand up an on-the-fly Splunk or elastic stack instance whilst mapping evidence within those artefacts to the MITRE ATT&CK® Framework, if desired.
 <br><br><br>
 
 <!-- Prerequisites -->

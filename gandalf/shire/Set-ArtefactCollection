@@ -564,7 +564,8 @@ function New-Archive {
         if (Test-Path -LiteralPath $ArchiveFile) {
             Remove-Item -Path $ArchiveFile -Recurse > $null
         }
-        Compress-Archive -Path $SourcePath -DestinationPath $ArchiveFile
+        Add-Type -Assembly "System.IO.Compression.Filesystem"
+        [IO.Compression.ZipFile]::CreateFromDirectory($SourcePath, $ArchiveFile)
     }
     elseif ($EncryptionObject -eq "Key") {
         $ArchiveFile = Join-Path -Path $ArchivePath -ChildPath "$Hostname.zip"
