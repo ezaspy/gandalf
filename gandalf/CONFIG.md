@@ -18,17 +18,20 @@ To enable PowerShell remoting, ensure that *TCP ports 5985 and 5986* are open on
 `Set-Item -Path WSMan:\localhost\Client\TrustedHosts <HOSTNAME(s)> -Force`<br>
 `Enable-PSRemoting -Force`<br>
 ### Target Host
-`Enable-PSRemoting -Force`<br><br>
+`Enable-PSRemoting -Force`<br>
+
+Remember to revert any changes made after the artefacts have been acquired.<br><br>
+
 ### hosts.list
 
 #### Windows
 `sudo git clone https://github.com/ezaspy/gandalf.git`
-- Edit [...\gandalf\gandalf\shire\hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/tools/hosts.list)
+- Edit [...\gandalf\gandalf\tools\hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/tools/hosts.list)
 - Move [\gandalf](https://github.com/ezaspy/gandalf/tree/main/gandalf) to acquisition host<br><br>
 
 #### Linux/macOS
 
 `sudo git clone https://github.com/ezaspy/gandalf.git`
-- Edit [.../gandalf/gandalf/shire/hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/tools/hosts.list)
+- Edit [.../gandalf/gandalf/tools/hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/tools/hosts.list)
 - Move [/gandalf](https://github.com/ezaspy/gandalf/tree/main/gandalf) to acquisition host<br><br>
 

@@ -220,6 +220,7 @@ function Set-ArtefactParams {
 
 function Invoke-RemoteArtefactCollection {
     Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $DriveLetter, $Hostname, $Session, $ArchiveObject)
+    Invoke-Command -Session $Session -ScriptBlock { if (Test-Path -LiteralPath C:\TEMP\gandalf) { Remove-Item C:\TEMP\gandalf -Recurse -Force } }
     Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\tools -ItemType Directory > $null }
     Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\tools.zip" -Destination "C:\TEMP\gandalf\gandalf\tools\tools.zip" -Force -Recurse; Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Destination "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Force
     Invoke-Command -Session $Session -FilePath C:\TEMP\gandalf\gandalf\tools\.\Invoke-ArtefactAcquisition.ps1
@@ -274,10 +275,32 @@ else {
     ForEach ($Hostname in $Hostlist) {
         Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject $CollectFiles
         Write-Host "     Attempting to connect to '$Hostname'..."
-        $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials
-        Write-Host "      Session opened for '$Hostname'" -ForegroundColor Green
-        Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $DriveLetter $Hostname $Session $ArchiveObject
-        #XPC - Linux hosts - Invoke-Command -HostName UserA@LinuxServer01 -ScriptBlock { Get-MailBox * } -KeyFilePath /UserA/UserAKey_rsa
+        $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials -ErrorAction SilentlyContinue -ErrorVariable SessionError
+        if ($SessionError) {
+            if ((Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") -Or (Select-String -InputObject $SessionError -Pattern "Access is denied")) { 
+                if (Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") { 
+                    Write-Host "      FAILURE: Server name '$Hostname' could not be resolved." -Foreground Red; Write-Host "       Perhaps the host is offline or there is a networking issue?" -Foreground White
+                    $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
+                    if ($ContinueAcquisition -eq "n") {
+                        Write-Host "`r      Please try again.`n`n"
+                        Exit
+                    }
+                }
+                elseif (Select-String -InputObject $SessionError -Pattern "Access is denied") { 
+                    Write-Host "      FAILURE: Invalid credentials provided to access '$Hostname'." -Foreground Red; Write-Host "       Ensure you are using an account which is a member of the Local Administrators group" -Foreground White
+                    $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
+                    if ($ContinueAcquisition -eq "n") {
+                        Write-Host "`r      Please try again.`n`n"
+                        Exit
+                    }
+                }
+            }
+        }
+        else {
+            Write-Host "      Session opened for '$Hostname'" -ForegroundColor Green
+            Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $DriveLetter $Hostname $Session $ArchiveObject
+            #XPC - Linux hosts - Invoke-Command -HostName UserA@LinuxServer01 -ScriptBlock { Get-MailBox * } -KeyFilePath /UserA/UserAKey_rsa
+        }
     }
 }
 $DateTime = "{0}" -f (Get-Date)
