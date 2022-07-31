@@ -52,7 +52,7 @@ function Format-Art {
        \___  /  / __ \_|   |  \/ /_/ |  / __ \_|  |__|  |    
       /_____/  (____  /|___|  /\____ | (____  /|____/|__|    
                     \/      \/      \/      \/               
-    " -Foreground White
+    "  -Foreground Magenta
     $quote = Get-Random -InputObject $quotes
     Write-Host $quote -Foreground Gray
 }
