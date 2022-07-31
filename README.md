@@ -72,7 +72,7 @@ Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/
 - Open 'Windows PowerShell' (not PowerShell Core) with Local Administrator privileges<br>
   - Tip: CTRL + SHIFT + PowerShell
 
-`.\Enter-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <C:\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-CollectFiles <include/exclude_file>]`<br><br>
+`.\Enter-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <C:\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-CollectFiles files.list]`<br><br>
 
 ### Linux/macOS
 - Populate [hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md#Linux-macOS), if required<br>

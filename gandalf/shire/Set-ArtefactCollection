@@ -558,9 +558,8 @@ function New-Archive {
     Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Hostname, $Message, $ArchiveObject)
     Write-Host `r
     $SourcePath = Resolve-Path -Path $OutputDirectory\$Hostname\artefacts
-    $ArchivePath = Resolve-Path -Path $OutputDirectory\$Hostname
     if ($EncryptionObject -eq "None") {
-        $ArchiveFile = Join-Path -Path $ArchivePath -ChildPath "$Hostname.zip"
+        $ArchiveFile = Join-Path -Path $OutputDirectory\$Hostname -ChildPath "$Hostname.zip"
         if (Test-Path -LiteralPath $ArchiveFile) {
             Remove-Item -Path $ArchiveFile -Recurse > $null
         }
