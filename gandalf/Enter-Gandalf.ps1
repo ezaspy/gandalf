@@ -211,18 +211,24 @@ function Set-Defaults {
 }
 
 function Set-ArtefactParams {
-    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $Hostname, $ArchiveObject, $CollectFiles)
-    $ArtefactParams = "Param(`$EncryptionObject = '$EncryptionObject', `$OutputDirectory = '$OutputDirectory', `$ShowProgress = '$ShowProgress', `$Memory = '$Memory', `$Hostname = '$Hostname', `$ArchiveObject = '$ArchiveObject', `$CollectFiles = '$CollectFiles')"
+    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $CollectFiles, $Hostname, $ArchiveObject)
+    $ArtefactParams = "Param(`$EncryptionObject = '$EncryptionObject', `$OutputDirectory = '$OutputDirectory', `$ShowProgress = '$ShowProgress', `$Memory = '$Memory', `$CollectFiles = '$CollectFiles', `$Hostname = '$Hostname', `$ArchiveObject = '$ArchiveObject')"
     Add-Content -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Value $ArtefactParams
     $ArtefactCollection = Get-Content -Path "C:\TEMP\gandalf\gandalf\shire\Set-ArtefactCollection"
     Add-Content -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Value $ArtefactCollection
 }
 
 function Invoke-RemoteArtefactCollection {
-    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $DriveLetter, $Hostname, $Session, $ArchiveObject)
+    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $CollectFiles, $DriveLetter, $Hostname, $Session, $ArchiveObject)
     Invoke-Command -Session $Session -ScriptBlock { if (Test-Path -LiteralPath C:\TEMP\gandalf) { Remove-Item C:\TEMP\gandalf -Recurse -Force } }
-    Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\tools -ItemType Directory > $null }
-    Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\tools.zip" -Destination "C:\TEMP\gandalf\gandalf\tools\tools.zip" -Force -Recurse; Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Destination "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Force
+    Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\tools -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\tools\memory -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\lists -ItemType Directory > $null }
+    Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\disk_tools.zip" -Destination "C:\TEMP\gandalf\gandalf\tools\disk_tools.zip" -Force -Recurse; Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Destination "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Force
+    if ($Memory -And $Memory -ne "False") {
+        Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\memory\DumpIt.exe" -Destination "C:\TEMP\gandalf\gandalf\tools\memory\DumpIt.exe" -Force; Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\memory\DumpItx86.exe" -Destination "C:\TEMP\gandalf\gandalf\tools\memory\DumpItx86.exe" -Force
+    }
+    if ($CollectFiles -And $CollectFiles -ne "False") {
+        Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\lists\files.list" -Destination "C:\TEMP\gandalf\gandalf\lists\files.list" -Force
+    }
     Invoke-Command -Session $Session -FilePath C:\TEMP\gandalf\gandalf\tools\.\Invoke-ArtefactAcquisition.ps1
     Remove-PSSession -Session $Session
     Invoke-RemoteArchiveCollection $OutputDirectory $Hostname $ArchiveObject
@@ -265,15 +271,15 @@ Write-Host `r
 if ($Acquisition -eq "Local") {
     $Hostlist = $env:COMPUTERNAME
     ForEach ($Hostname in $Hostlist) {
-        Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject $CollectFiles
+        Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $Hostname $ArchiveObject
         C:\TEMP\gandalf\gandalf\tools\.\Invoke-ArtefactAcquisition.ps1
     }
 }
 else {
     $RemoteCredentials = $host.ui.PromptForCredential("Local Admin authentication required", "Please enter credentials for PowerShell remoting", "", "")
-    $Hostlist = Get-Content "C:\TEMP\gandalf\gandalf\tools\hosts.list"
+    $Hostlist = Get-Content "C:\TEMP\gandalf\gandalf\lists\hosts.list"
     ForEach ($Hostname in $Hostlist) {
-        Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $Hostname $ArchiveObject $CollectFiles
+        Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $Hostname $ArchiveObject
         Write-Host "     Attempting to connect to '$Hostname'..."
         $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials -ErrorAction SilentlyContinue -ErrorVariable SessionError
         if ($SessionError) {
@@ -298,7 +304,7 @@ else {
         }
         else {
             Write-Host "      Session opened for '$Hostname'" -ForegroundColor Green
-            Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $DriveLetter $Hostname $Session $ArchiveObject
+            Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $DriveLetter $Hostname $Session $ArchiveObject
             #XPC - Linux hosts - Invoke-Command -HostName UserA@LinuxServer01 -ScriptBlock { Get-MailBox * } -KeyFilePath /UserA/UserAKey_rsa
         }
     }
