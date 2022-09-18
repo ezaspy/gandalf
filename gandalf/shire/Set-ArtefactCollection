@@ -70,10 +70,10 @@ function Get-Artefacts {
                 Write-Progress "Acquiring raw memory dump from '$Hostname'..."
                 $global:ProgressPreference = "SilentlyContinue"
                 if ($Architecture -eq "64") { 
-                    $dumpit = { C:\TEMP\gandalf\gandalf\tools\memory\DumpIt.exe /O .\$OutputDirectory\$Hostname\artefacts\artefacts\raw\memory\$Hostname.raw /C /N /Q }
+                    $dumpit = { C:\TEMP\gandalf\gandalf\tools\memory\DumpIt.exe /O $OutputDirectory\$Hostname\artefacts\artefacts\raw\memory\$Hostname.raw /C /N /Q }
                 }
                 else { 
-                    $dumpit = { C:\TEMP\gandalf\gandalf\tools\memory\DumpItx86.exe /O .\$OutputDirectory\$Hostname\artefacts\artefacts\raw\memory\$Hostname.raw /C /N /Q }
+                    $dumpit = { C:\TEMP\gandalf\gandalf\tools\memory\DumpItx86.exe /O $OutputDirectory\$Hostname\artefacts\artefacts\raw\memory\$Hostname.raw /C /N /Q }
                 }
                 Invoke-Command -ScriptBlock $dumpit > $null 2>&1
                 $global:ProgressPreference = "Continue"
@@ -187,16 +187,16 @@ function Get-Artefacts {
     function Get-Core { 
         Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
         $global:ProgressPreference = "SilentlyContinue"
-        Expand-Archive -LiteralPath "$OutputDirectory\tools\disk_tools.zip" -DestinationPath "$OutputDirectory\tools"
+        Expand-Archive -LiteralPath "C:\TEMP\gandalf\gandalf\tools\disk_tools.zip" -DestinationPath "C:\TEMP\gandalf\gandalf\tools"
         $global:ProgressPreference = "Continue"
         # Acquiring MFT
         try { 
             Write-Progress "Acquiring `$MFT from '$Hostname'..."
             $global:ProgressPreference = "SilentlyContinue"
-            Expand-Archive -LiteralPath "$OutputDirectory\tools\icat-sk-4.11.1-win32.zip" -DestinationPath "$OutputDirectory\tools\icat"
+            Expand-Archive -LiteralPath "C:\TEMP\gandalf\gandalf\tools\icat-sk-4.11.1-win32.zip" -DestinationPath "C:\TEMP\gandalf\gandalf\tools\icat"
             $icat = { C:\TEMP\gandalf\gandalf\tools\icat\bin\icat.exe \\.\c: 0 > $OutputDirectory\$Hostname\artefacts\artefacts\raw\`$MFT }
             Invoke-Command -ScriptBlock $icat
-            Remove-Item "$OutputDirectory\tools\icat" -Recurse -Force
+            Remove-Item "C:\TEMP\gandalf\gandalf\\tools\icat" -Recurse -Force
             $global:ProgressPreference = "Continue"
             Write-Host "       Acquired `$MFT from '$Hostname'" -ForegroundColor Green
             $Message = "acquired '`$MFT' from '$Hostname'"
@@ -531,19 +531,21 @@ function Get-Files {
                 ForEach ($Fullfile in $Fullfiles) {
                     if (-Not ($Fullfile | Select-String -Pattern "TEMP\gandalf\" -SimpleMatch)) {
                         Write-Host "       Found '$Fullfile'"
-                        $FileDirectory = $Fullfile.Split("\\")[-2]
-                        $File = $Fullfile.Split("\\")[-1]
+                        $FileDirectory = $Fullfile.Split("\\")[-1]
+                        $FileHash = (Get-FileHash $Fullfile).Hash # obtain sha256 of each file found
                         if (-Not (Test-Path -LiteralPath $FileDirectory)) {
                             New-Item -Path $OutputDirectory\$Hostname\artefacts\files\$FileDirectory\ -ItemType Directory -Force -ErrorAction SilentlyContinue > $null
                         }
-                        try { 
-                            Copy-Item $Fullfile -Destination $OutputDirectory\$Hostname\artefacts\files\$FileDirectory\$File -Force -ErrorAction SilentlyContinue
-                            Write-Host "        Collected '$Fullfile'" -ForegroundColor Green
-                            $Message = "collected '$Fullfile' from '$Hostname'"
-                            Add-LogEntry $ShowProgress $OutputDirectory $Hostname "collected_file" $Message
-                        }
-                        catch { 
-                            Write-Host "      FAILURE: '$Fullfile' could not be collected; it may be being used by another process." -ForegroundColor Red
+                        if (-Not (Test-Path $OutputDirectory\$Hostname\artefacts\files\$FileDirectory\$FileHash)) {
+                            try { 
+                                Copy-Item $Fullfile -Destination $OutputDirectory\$Hostname\artefacts\files\$FileDirectory\$FileHash -Force -ErrorAction SilentlyContinue
+                                Write-Host "        Collected '$Fullfile'" -ForegroundColor Green
+                                $Message = "collected '$Fullfile' from '$Hostname'"
+                                Add-LogEntry $ShowProgress $OutputDirectory $Hostname "collected_file" $Message
+                            }
+                            catch { 
+                                Write-Host "      FAILURE: '$Fullfile' could not be collected; it may be being used by another process." -ForegroundColor Red
+                            }
                         }
                     }
                 }

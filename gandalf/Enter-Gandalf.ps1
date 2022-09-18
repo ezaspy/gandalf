@@ -19,6 +19,8 @@
  Print progress of individual artefact acquisition to screen
  .Parameter CollectFiles
  Collect files containing string (provided in files.list) in file name
+ .Parameter Force
+ Do not prompt
  .Example
  The following example invokes all of the parameters with the default arguments;
    -EncryptionObject Key -Acquisition Local -OutputDirectory C:\TEMP\gandalf\gandalf
@@ -39,11 +41,12 @@ Param(
     [Parameter(Position = 2)][string]$OutputDirectory,
     [Parameter(Position = 3)][switch]$Memory,
     [Parameter(Position = 4)][switch]$ShowProgress,
-    [Parameter(Position = 5)][switch]$CollectFiles
+    [Parameter(Position = 5)][switch]$CollectFiles,
+    [Parameter(Position = 6)][switch]$NoPrompt
 )
 
 function Format-Art {
-    $quotes = @("     Not come the days of the King.`n     May they be blessed.`n`n", "     If my old gaffer could see me now.`n`n", "     I'll have no pointy-ear outscoring me!`n`n", "     I think there is more to this hobbit, than meets the eye.`n`n", "     You are full of surprises Master Baggins.`n`n", "     One ring to rule them all, one ring to find them.`n     One ring to bring them all, and in the darkness bind them.`n`n", "     The world is changed.`n     I feel it in the water.`n     I feel it in the earth.`n     I smell it in the air.`n`n", "     Who knows? Have patience. Go where you must go, and hope!`n`n", "     All we have to decide is what to do with the time that is given us.`n`n", "     Deeds will not be less valiant because they are unpraised.`n`n", "     It is not the strength of the body, but the strength of the spirit.`n`n", "     But in the end it's only a passing thing, this shadow; even darkness must pass.`n`n", "     It's the job that's never started as takes longest to finish.`n`n", "     Coward? Not every man's brave enough to wear a corset!`n`n", "     Bilbo was right. You cannot see what you have become.`n`n", "     He is known in the wild as Strider.`n     His true name, you must discover for yourself.`n`n", "     Legolas said you fought well today. He's grown very fond of you.`n`n", "     You will take NOTHING from me, dwarf.`n     I laid low your warriors of old.`n     I instilled terror in the hearts of men.`n     I AM KING UNDER THE MOUNTAIN!`n`n", "     You've changed, Bilbo Baggins.`n     You're not the same Hobbit as the one who left the Shire...`n`n", "     The world is not in your books and maps. It's out there.`n`n", "     That is private, keep your sticky paws off! It's not ready yet!`n`n", "     I wish you all the luck in the world. I really do.`n`n", "     No. No. You can't turn back now. You're part of the company.`n     You're one of us.`n`n", "     True courage is about knowing not when to take a life, but when to spare one.`n`n", "     The treacherous are ever distrustful.`n`n", "     Let him not vow to walk in the dark, who has not seen the nightfall.`n`n", "     He that breaks a thing to find out what it is has left the path of wisdom.`n`n", "     I was there, Gandalf.`n     I was there three thousand years ago, when Isildur took the ring.`n     I was there the day the strength of Men failed.`n`n", "     I don't know half of you half as well as I should like,`n     and I like less than half of you half as well as you deserve.`n`n", "     Certainty of death. Small chance of success.`n     What are we waiting for?`n`n", "     Do not spoil the wonder with haste!`n`n", "     It came to me, my own, my love... my... preciousssss.`n`n", "     One does not simply walk into Mordor...`n`n", "     Nine companions. So be it. You shall be the fellowship of the ring.`n`n", "     You have my sword. You have my bow; And my axe!`n`n", "     Build me an army, worthy of Mordor!`n`n", "     Nobody tosses a Dwarf!`n`n", "     If in doubt, Meriadoc, always follow your nose.`n`n", "     This is beyond my skill to heal; he needs Elven medicine.`n`n", "     No, thank you! We don't want any more visitors, well-wishers or distant relations!`n`n", "     Mordor! I hope the others find a safer road.`n`n", "     YOU SHALL NOT PASS!`n`n", "     You cannot hide, I see you!`n     There is no life, after me.`n     Only!.. Death!`n`n", "     A wizard is never late, Frodo Baggins.`n     Nor is he early.`n     He arrives precisely when he means to.`n`n", "     Is it secret?! Is it safe?!`n`n", "     Even the smallest person can change the course of the future.`n`n", "     We must move on, we cannot linger.`n`n", "     I wish the ring had never come to me. I wish none of this had happened.`n`n", "     Moonlight drowns out all but the brightest stars.`n`n", "     A hunted man sometimes wearies of distrust and longs for friendship.`n`n", "     The world is indeed full of peril and in it there are many dark places.`n`n", "     Someone else always has to carry on the story.`n`n", "     Your time will come. You will face the same Evil, and you will defeat it.`n`n", "     It is useless to meet revenge with revenge; it will heal nothing.`n`n", "     Despair is only for those who see the end beyond all doubt. We do not.`n`n", "     Anyways, you need people of intelligence on this sort of... mission... quest... thing.`n`n", "     Oh, it's quite simple. If you are a friend, you speak the password, and the doors will open.`n`n", "     The wise speak only of what they know.`n`n", "     Not all those who wander are lost.`n`n", "     It's the deep breath before the plunge.`n`n")
+    $quotes = @("     Not come the days of the King.`n     May they be blessed.`n", "     If my old gaffer could see me now.`n", "     I'll have no pointy-ear outscoring me!`n", "     I think there is more to this hobbit, than meets the eye.`n", "     You are full of surprises Master Baggins.`n", "     One ring to rule them all, one ring to find them.`n     One ring to bring them all, and in the darkness bind them.`n", "     The world is changed.`n     I feel it in the water.`n     I feel it in the earth.`n     I smell it in the air.`n", "     Who knows? Have patience. Go where you must go, and hope!`n", "     All we have to decide is what to do with the time that is given us.`n", "     Deeds will not be less valiant because they are unpraised.`n", "     It is not the strength of the body, but the strength of the spirit.`n", "     But in the end it's only a passing thing, this shadow; even darkness must pass.`n", "     It's the job that's never started as takes longest to finish.`n", "     Coward? Not every man's brave enough to wear a corset!`n", "     Bilbo was right. You cannot see what you have become.`n", "     He is known in the wild as Strider.`n     His true name, you must discover for yourself.`n", "     Legolas said you fought well today. He's grown very fond of you.`n", "     You will take NOTHING from me, dwarf.`n     I laid low your warriors of old.`n     I instilled terror in the hearts of men.`n     I AM KING UNDER THE MOUNTAIN!`n", "     You've changed, Bilbo Baggins.`n     You're not the same Hobbit as the one who left the Shire...`n", "     The world is not in your books and maps. It's out there.`n", "     That is private, keep your sticky paws off! It's not ready yet!`n", "     I wish you all the luck in the world. I really do.`n", "     No. No. You can't turn back now. You're part of the company.`n     You're one of us.`n", "     True courage is about knowing not when to take a life, but when to spare one.`n", "     The treacherous are ever distrustful.`n", "     Let him not vow to walk in the dark, who has not seen the nightfall.`n", "     He that breaks a thing to find out what it is has left the path of wisdom.`n", "     I was there, Gandalf.`n     I was there three thousand years ago, when Isildur took the ring.`n     I was there the day the strength of Men failed.`n", "     I don't know half of you half as well as I should like,`n     and I like less than half of you half as well as you deserve.`n", "     Certainty of death. Small chance of success.`n     What are we waiting for?`n", "     Do not spoil the wonder with haste!`n", "     It came to me, my own, my love... my... preciousssss.`n", "     One does not simply walk into Mordor...`n", "     Nine companions. So be it. You shall be the fellowship of the ring.`n", "     You have my sword. You have my bow; And my axe!`n", "     Build me an army, worthy of Mordor!`n", "     Nobody tosses a Dwarf!`n", "     If in doubt, Meriadoc, always follow your nose.`n", "     This is beyond my skill to heal; he needs Elven medicine.`n", "     No, thank you! We don't want any more visitors, well-wishers or distant relations!`n", "     Mordor! I hope the others find a safer road.`n", "     YOU SHALL NOT PASS!`n", "     You cannot hide, I see you!`n     There is no life, after me.`n     Only!.. Death!`n", "     A wizard is never late, Frodo Baggins.`n     Nor is he early.`n     He arrives precisely when he means to.`n", "     Is it secret?! Is it safe?!`n", "     Even the smallest person can change the course of the future.`n", "     We must move on, we cannot linger.`n", "     I wish the ring had never come to me. I wish none of this had happened.`n", "     Moonlight drowns out all but the brightest stars.`n", "     A hunted man sometimes wearies of distrust and longs for friendship.`n", "     The world is indeed full of peril and in it there are many dark places.`n", "     Someone else always has to carry on the story.`n", "     Your time will come. You will face the same Evil, and you will defeat it.`n", "     It is useless to meet revenge with revenge; it will heal nothing.`n", "     Despair is only for those who see the end beyond all doubt. We do not.`n", "     Anyways, you need people of intelligence on this sort of... mission... quest... thing.`n", "     Oh, it's quite simple. If you are a friend, you speak the password, and the doors will open.`n", "     The wise speak only of what they know.`n", "     Not all those who wander are lost.`n", "     It's the deep breath before the plunge.`n")
     Write-Host "
     `n`n`n`n`n
          ____                      .___        .__    _____  
@@ -153,7 +156,7 @@ function Reset-Modules {
 }
 
 function Set-Defaults {
-    Param ($EncryptionObject, $Acquisition, $OutputDirectory)
+    Param ($EncryptionObject, $Acquisition, $OutputDirectory, $NoPrompt)
     if ($null -eq $Acquisition -Or $Acquisition -eq "" -Or $Acquisition -eq "Local") {
         $Acquisition = "Local"
     }
@@ -173,10 +176,15 @@ function Set-Defaults {
         Write-Host `r
     }
     elseif ($EncryptionObject -eq "None") {
-        $ConfirmNoEncryption = Read-Host "     You have chosen to use no encryption when archiving the artefacts. This is not recommended.`n      Are you sure you want to proceed? y/N [N] "
-        if ($ConfirmNoEncryption -ne "y") {
-            Write-Host "      Please try again with the " -NoNewLine; Write-Host "-EncryptionObject" -NoNewLine -Foreground Magenta; Write-Host " parameter set to 'Key' or 'Password'`n`n"
-            Exit
+        if (-Not ($NoPrompt)) {
+            $ConfirmNoEncryption = Read-Host "     You have chosen to use no encryption when archiving the artefacts. This is not recommended.`n      Are you sure you want to proceed? y/N [N] "
+            if ($ConfirmNoEncryption -ne "y") {
+                Write-Host "      Please try again with the " -NoNewLine; Write-Host "-EncryptionObject" -NoNewLine -Foreground Magenta; Write-Host " parameter set to 'Key' or 'Password'`n`n"
+                Exit
+            }
+        }
+        else {
+            $ConfirmNoEncryption = "y"
         }
     }
     else {
@@ -184,14 +192,19 @@ function Set-Defaults {
         Exit
     }
     if ($null -eq $OutputDirectory -Or $OutputDirectory -eq "") {
-        $OutputDirectory = "C:\TEMP\gandalf\gandalf"
+        $OutputDirectory = "C:\TEMP\gandalf\acquisitions"
     }
     else {
         if (Test-Path -LiteralPath $OutputDirectory) {
             if (-Not($OutputDirectory.Startswith(".\"))) {
                 $OutputDirectory = Join-Path -Path ".\" -ChildPath $OutputDirectory
             }
-            $OverwriteDestination = Read-Host "    The destination of '$OutputDirectory' already exists. Do you wish to overwrite it? Y/n [Y]"
+            if (-Not ($NoPrompt)) {
+                $OverwriteDestination = Read-Host "    The destination of '$OutputDirectory' already exists. Do you wish to overwrite it? Y/n [Y]"
+            }
+            else {
+                $OverwriteDestination = "y"
+            }
             if ($OverwriteDestination -ne "n") {
                 Remove-Item -Path $OutputDirectory -Recurse > $null
                 New-Item -Path $OutputDirectory -ItemType Directory > $null
@@ -221,7 +234,7 @@ function Set-ArtefactParams {
 function Invoke-RemoteArtefactCollection {
     Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $CollectFiles, $DriveLetter, $Hostname, $Session, $ArchiveObject)
     Invoke-Command -Session $Session -ScriptBlock { if (Test-Path -LiteralPath C:\TEMP\gandalf) { Remove-Item C:\TEMP\gandalf -Recurse -Force } }
-    Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\tools -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\tools\memory -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\lists -ItemType Directory > $null }
+    Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\acquisitions -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\tools -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\tools\memory -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\lists -ItemType Directory > $null }
     Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\disk_tools.zip" -Destination "C:\TEMP\gandalf\gandalf\tools\disk_tools.zip" -Force -Recurse; Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Destination "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Force
     if ($Memory -And $Memory -ne "False") {
         Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\memory\DumpIt.exe" -Destination "C:\TEMP\gandalf\gandalf\tools\memory\DumpIt.exe" -Force; Copy-Item -ToSession $Session -Path "C:\TEMP\gandalf\gandalf\tools\memory\DumpItx86.exe" -Destination "C:\TEMP\gandalf\gandalf\tools\memory\DumpItx86.exe" -Force
@@ -238,8 +251,8 @@ function Invoke-RemoteArchiveCollection {
     Param ($OutputDirectory, $Hostname, $ArchiveObject)
     $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials
     Write-Progress "Collecting acquired artefacts from '$Hostname'..."
-    New-Item -Path $OutputDirectory\acquisitions -ItemType Directory > $null; New-Item -Path $OutputDirectory\acquisitions\$Hostname -ItemType Directory > $null
-    Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\log.audit" -Destination "$OutputDirectory\acquisitions\$Hostname\log.audit" -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\meta.audit" -Destination "$OutputDirectory\acquisitions\$Hostname\meta.audit" -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\$Hostname.zip" -Destination "$OutputDirectory\acquisitions\$Hostname\$Hostname.zip" -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\$Hostname.7z" -Destination "$OutputDirectory\acquisitions\$Hostname\$Hostname.7z" -Force > $null 2>&1
+    New-Item -Path $OutputDirectory -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname -ItemType Directory > $null
+    Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\log.audit" -Destination "$OutputDirectory\$Hostname\log.audit" -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\meta.audit" -Destination "$OutputDirectory\$Hostname\meta.audit" -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\$Hostname.zip" -Destination "$OutputDirectory\$Hostname\$Hostname.zip" -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\$Hostname.7z" -Destination "$OutputDirectory\$Hostname\$Hostname.7z" -Force > $null 2>&1
     Write-Host "`n   -> Collected acquired artefacts from '$Hostname'"
     Write-Progress "Cleaning up '$Hostname'..."
     Invoke-Command -Session $Session -ScriptBlock { Remove-Item -Path C:\TEMP\gandalf -Recurse }
@@ -255,7 +268,10 @@ $StartTime = [convert]::ToInt32($StartTime)
 $global:ProgressPreference = "Continue"
 Clear-Host
 Format-Art
-$EncryptionObject, $Acquisition, $OutputDirectory = Set-Defaults $EncryptionObject $Acquisition $OutputDirectory
+if (-Not ($NoPrompt)) {
+    Write-Host `r
+}
+$EncryptionObject, $Acquisition, $OutputDirectory = Set-Defaults $EncryptionObject $Acquisition $OutputDirectory $NoPrompt
 if ($EncryptionObject -eq "Key") {
     $ArchiveObject = Read-Host "     Provide path to PGP Public Key for archive encryption"
 }
@@ -267,7 +283,9 @@ elseif ($EncryptionObject -eq "Password") {
 else {
     $ArchiveObject = "None"
 }
-Write-Host `r
+if (-Not ($NoPrompt)) {
+    Write-Host `r
+}
 if ($Acquisition -eq "Local") {
     $Hostlist = $env:COMPUTERNAME
     ForEach ($Hostname in $Hostlist) {
