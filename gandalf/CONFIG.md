@@ -4,34 +4,44 @@ Potential additional configuration requirements<br><br>
 <!-- TABLE OF CONTENTS -->
 # Table of Contents
 
-* [PowerShell Remoting](#Enabling-PowerShell-remoting)
-    * [Source Host](#Source-Host)
-    * [Target Host](#Target-Host)
-    * [hosts.list](#hosts.list)
-        * [Windows](#Windows)
-        * [Linux/macOS](#Linux-macOS)
+* [Windows](#windows)
+  * [PowerShell Remoting](#enabling-powershell-remoting)
+    * [Source Host](#source-host)
+    * [Target Host](#target-host)
+  * [hosts.list](#hosts.list)
+* [Linux/macOS](#linux-macos)
+  * [Enabling SSH](#enabling-ssh)
+  * [hosts.list](#hosts.list)
 <br><br>
 
-## Enabling PowerShell remoting
+## Windows
+
+### Enabling PowerShell remoting
 To enable PowerShell remoting, ensure that *TCP ports 5985 and 5986* are open on the necessary firewalls for WSMAN protocol. You will, of course, also need to be using an account which is a member of the *local Administrator group*. Once done, run the following command on the respective machines:
-### Source Host
+#### Source Host
 `Set-Item -Path WSMan:\localhost\Client\TrustedHosts <HOSTNAME(s)> -Force`<br>
 `Enable-PSRemoting -Force`<br>
-### Target Host
+#### Target Host
 `Enable-PSRemoting -Force`<br>
 
-Remember to revert any changes made after the artefacts have been acquired.<br><br>
+**Remember to revert any changes made, if necessary, after the artefacts have been acquired.**<br>
+
+### hosts.list
+`sudo git clone https://github.com/ezaspy/gandalf.git`
+- Edit [...\gandalf\gandalf\hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/hosts.list)
+- Move [\gandalf](https://github.com/ezaspy/gandalf/tree/main/gandalf) to **acquisition** host<br><br>
+<br><br>
+
+## Linux/macOS
+
+### Enabling SSH
+To enable SSH for remote artefact acquisition, ensure that port 22 is open on the target-host, as well as having the necessary firewall rules enabled. You will, of course, also need to be using a *root*-level account. Once done, run the following command on the respective machines:
+
+**Remember to revert any changes made, if necessary, after the artefacts have been acquired.**<br>
 
 ### hosts.list
 
-#### Windows
 `sudo git clone https://github.com/ezaspy/gandalf.git`
-- Edit [...\gandalf\gandalf\tools\hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/tools/hosts.list)
-- Move [\gandalf](https://github.com/ezaspy/gandalf/tree/main/gandalf) to acquisition host<br><br>
-
-#### Linux/macOS
-
-`sudo git clone https://github.com/ezaspy/gandalf.git`
-- Edit [.../gandalf/gandalf/tools/hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/tools/hosts.list)
-- Move [/gandalf](https://github.com/ezaspy/gandalf/tree/main/gandalf) to acquisition host<br><br>
-
+- Edit [.../gandalf/gandalf/hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/hosts.list)
+- Move [/gandalf](https://github.com/ezaspy/gandalf/tree/main/gandalf) to **acquisition** host
+- *Optional*: sudo pip install -r requirements.txt<br><br>

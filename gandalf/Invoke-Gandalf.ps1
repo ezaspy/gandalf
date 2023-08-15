@@ -14,26 +14,26 @@
  .Parameter OutputDirectory
  Destination directory of where the collected will be stored
  .Parameter Memory
- Collect a memory dump
+ Collect a live memory dump
  .Parameter ShowProgress
  Print progress of individual artefact acquisition to screen
  .Parameter CollectFiles
  Collect files containing string (provided in files.list) in file name
  .Parameter Force
- Do not prompt
+ Do not unnecessarily prompt
  .Example
  The following example invokes all of the parameters with the default arguments;
    -EncryptionObject Key -Acquisition Local -OutputDirectory C:\TEMP\gandalf\gandalf
-  PS C:\> .\Enter-Gandalf.ps1
+  PS C:\> .\Invoke-Gandalf.ps1
  .Example
  The following example invokes all of the parameters with the default arguments;
   explicitly stated:
-  PS C:\> .\Enter-Gandalf.ps1 -EncryptionObject Key -Acquisition Local -OutputDirectory C:\TEMP\gandalf\gandalf
+  PS C:\> .\Invoke-Gandalf.ps1 -EncryptionObject Key -Acquisition Local -OutputDirectory C:\TEMP\gandalf\gandalf
  .Example
  The following example invokes all of the parameters with non-default arguments;
   deployment against a remote host, specified by IP or Hostname, a (less secure) 
   password-protected package, and outputted to the root directory on the D: drive.
-  PS C:\> .\Gandalf.ps1 -EncryptionObject Password -Acquisition <REMOTE_HOST> -OutputDirectory D: -Memory -ShowProgress
+  PS C:\> .\Invoke-Gandalf.ps1 -EncryptionObject Password -Acquisition <REMOTE_HOST> -OutputDirectory D: -Memory -ShowProgress
 #>
 Param(
     [Parameter(Mandatory = $True, Position = 0)][string]$EncryptionObject,
@@ -283,9 +283,7 @@ elseif ($EncryptionObject -eq "Password") {
 else {
     $ArchiveObject = "None"
 }
-if (-Not ($NoPrompt)) {
-    Write-Host `r
-}
+Write-Host `r
 if ($Acquisition -eq "Local") {
     $Hostlist = $env:COMPUTERNAME
     ForEach ($Hostname in $Hostlist) {
@@ -295,35 +293,37 @@ if ($Acquisition -eq "Local") {
 }
 else {
     $RemoteCredentials = $host.ui.PromptForCredential("Local Admin authentication required", "Please enter credentials for PowerShell remoting", "", "")
-    $Hostlist = Get-Content "C:\TEMP\gandalf\gandalf\lists\hosts.list"
+    $Hostlist = Get-Content "C:\TEMP\gandalf\gandalf\hosts.list"
     ForEach ($Hostname in $Hostlist) {
-        Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $Hostname $ArchiveObject
-        Write-Host "     Attempting to connect to '$Hostname'..."
-        $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials -ErrorAction SilentlyContinue -ErrorVariable SessionError
-        if ($SessionError) {
-            if ((Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") -Or (Select-String -InputObject $SessionError -Pattern "Access is denied")) { 
-                if (Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") { 
-                    Write-Host "      FAILURE: Server name '$Hostname' could not be resolved." -Foreground Red; Write-Host "       Perhaps the host is offline or there is a networking issue?" -Foreground White
-                    $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
-                    if ($ContinueAcquisition -eq "n") {
-                        Write-Host "`r      Please try again.`n`n"
-                        Exit
+        if (-Not ($Hostname.Startswith("#"))) {
+            Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $Hostname $ArchiveObject
+            Write-Host "     Attempting to connect to '$Hostname'..."
+            $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials -ErrorAction SilentlyContinue -ErrorVariable SessionError
+            if ($SessionError) {
+                if ((Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") -Or (Select-String -InputObject $SessionError -Pattern "Access is denied")) { 
+                    if (Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") { 
+                        Write-Host "      FAILURE: Server name '$Hostname' could not be resolved." -Foreground Red; Write-Host "       Perhaps the host is offline or there is a networking issue?" -Foreground White
+                        $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
+                        if ($ContinueAcquisition -eq "n") {
+                            Write-Host "`r      Please try again.`n`n"
+                            Exit
+                        }
                     }
-                }
-                elseif (Select-String -InputObject $SessionError -Pattern "Access is denied") { 
-                    Write-Host "      FAILURE: Invalid credentials provided to access '$Hostname'." -Foreground Red; Write-Host "       Ensure you are using an account which is a member of the Local Administrators group" -Foreground White
-                    $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
-                    if ($ContinueAcquisition -eq "n") {
-                        Write-Host "`r      Please try again.`n`n"
-                        Exit
+                    elseif (Select-String -InputObject $SessionError -Pattern "Access is denied") { 
+                        Write-Host "      FAILURE: Invalid credentials provided to access '$Hostname'." -Foreground Red; Write-Host "       Ensure you are using an account which is a member of the Local Administrators group" -Foreground White
+                        $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
+                        if ($ContinueAcquisition -eq "n") {
+                            Write-Host "`r      Please try again.`n`n"
+                            Exit
+                        }
                     }
                 }
             }
-        }
-        else {
-            Write-Host "      Session opened for '$Hostname'" -ForegroundColor Green
-            Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $DriveLetter $Hostname $Session $ArchiveObject
-            #XPC - Linux hosts - Invoke-Command -HostName UserA@LinuxServer01 -ScriptBlock { Get-MailBox * } -KeyFilePath /UserA/UserAKey_rsa
+            else {
+                Write-Host "      Session opened for '$Hostname'" -ForegroundColor Green
+                Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $DriveLetter $Hostname $Session $ArchiveObject
+                #XPC - Linux hosts - Invoke-Command -HostName UserA@LinuxServer01 -ScriptBlock { Get-MailBox * } -KeyFilePath /UserA/UserAKey_rsa
+            }
         }
     }
 }

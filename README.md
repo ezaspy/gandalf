@@ -58,7 +58,7 @@ gandalf will collect all commonly utilised forensic artefacts but it will not pr
 
 The only prequisites for gandalf is permissions. You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. This is true for both Remote and Local acquisitions.<br>
 On Windows Server 2012+ remoting is enabled by default. You only need to confirm that your firewall rules allow inbound access. 
-However, no Windows client OS has PowerShell remoting enabled by default.<br>
+Note that no Windows client OS has PowerShell remoting enabled by default.<br>
 Please review the [SUPPORT.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) file for instructions on how to leverage and deploy gandalf.<br>
 Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md) file for instructions on how to enable PowerShell remoting.<br><br><br>
 
