@@ -19,8 +19,6 @@
  Print progress of individual artefact acquisition to screen
  .Parameter CollectFiles
  Collect files containing string (provided in files.list) in file name
- .Parameter Force
- Do not unnecessarily prompt
  .Example
  The following example invokes all of the parameters with the default arguments;
    -EncryptionObject Key -Acquisition Local -OutputDirectory C:\TEMP\gandalf\gandalf
@@ -41,8 +39,7 @@ Param(
     [Parameter(Position = 2)][string]$OutputDirectory,
     [Parameter(Position = 3)][switch]$Memory,
     [Parameter(Position = 4)][switch]$ShowProgress,
-    [Parameter(Position = 5)][switch]$CollectFiles,
-    [Parameter(Position = 6)][switch]$NoPrompt
+    [Parameter(Position = 5)][switch]$CollectFiles
 )
 
 function Format-Art {
@@ -293,7 +290,7 @@ if ($Acquisition -eq "Local") {
 }
 else {
     $RemoteCredentials = $host.ui.PromptForCredential("Local Admin authentication required", "Please enter credentials for PowerShell remoting", "", "")
-    $Hostlist = Get-Content "C:\TEMP\gandalf\gandalf\hosts.list"
+    $Hostlist = Get-Content "lists\hosts.list"
     ForEach ($Hostname in $Hostlist) {
         if (-Not ($Hostname.Startswith("#"))) {
             Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $Hostname $ArchiveObject

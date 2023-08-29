@@ -35,7 +35,16 @@ To enable PowerShell remoting, ensure that *TCP ports 5985 and 5986* are open on
 ## Linux/macOS
 
 ### Enabling SSH
-To enable SSH for remote artefact acquisition, ensure that port 22 is open on the target-host, as well as having the necessary firewall rules enabled. You will, of course, also need to be using a *root*-level account. Once done, run the following command on the respective machines:
+To enable SSH for remote artefact acquisition, ensure that port 22 is open on the target-host, as well as having the necessary firewall rules enabled. You will, of course, also need to be using a *root*-level account (to acquire the necessary artefacts):
+#### Target Host
+`sudo [apt/yum/zypper/dnf/pacman] install openssh-server -y`<br>
+`sudo ufw enable`<br>
+##### Acquisition from Specific Host
+- `sudo ufw allow from 10.10.10.2 to any port ssh`<br>
+##### Acquisition from Specific Subnet
+- `sudo ufw allow from 10.10.10.0/24 to any port ssh`<br>
+##### Acquisition from Any Host
+- `sudo ufw allow ssh`<br><br>
 
 **Remember to revert any changes made, if necessary, after the artefacts have been acquired.**<br>
 
@@ -44,4 +53,4 @@ To enable SSH for remote artefact acquisition, ensure that port 22 is open on th
 `sudo git clone https://github.com/ezaspy/gandalf.git`
 - Edit [.../gandalf/gandalf/hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/hosts.list)
 - Move [/gandalf](https://github.com/ezaspy/gandalf/tree/main/gandalf) to **acquisition** host
-- *Optional*: sudo pip install -r requirements.txt<br><br>
+- sudo pip install -r requirements.txt<br><br>

@@ -76,7 +76,9 @@ def print_progress(artefact, gandalf_host, artefact_output_dir, previously_colle
             if artefact_output_dir == "logs":
                 print(
                     "      \033[1;32mAcquired {} {} from '{}'\033[1;m".format(
-                        artefact.split("/")[-3].lower(), artefact_output_dir, gandalf_host
+                        artefact.split("/")[-3].lower(),
+                        artefact_output_dir,
+                        gandalf_host,
                     )
                 )
             elif artefact_output_dir == "plists":
@@ -132,6 +134,14 @@ def print_progress(artefact, gandalf_host, artefact_output_dir, previously_colle
                     gandalf_host
                 )
             )
+        elif artefact_output_dir == "user":
+            print(
+                "      \033[1;32mAcquired {} artefacts for '{}' from '{}'\033[1;m".format(
+                    artefact_output_dir,
+                    gandalf_host.split("+")[1],
+                    gandalf_host.split("+")[0],
+                )
+            )
         elif artefact_output_dir != "":
             print(
                 "      \033[1;32mAcquired {} artefacts from '{}'\033[1;m".format(
@@ -153,7 +163,9 @@ def collect_volatile_data(gandalf_artefact_destination):
             stderr=subprocess.PIPE,
         ).communicate()[0]
     )[2:-3]
-    with open(os.path.join(gandalf_artefact_destination, "host.info"), "w") as platform_info:
+    with open(
+        os.path.join(gandalf_artefact_destination, "host.info"), "w"
+    ) as platform_info:
         platform_info.write(platform)
     processes = str(
         subprocess.Popen(
@@ -162,7 +174,9 @@ def collect_volatile_data(gandalf_artefact_destination):
             stderr=subprocess.PIPE,
         ).communicate()[0]
     )[2:-3]
-    with open(os.path.join(gandalf_artefact_destination, "process.info"), "w") as process_info:
+    with open(
+        os.path.join(gandalf_artefact_destination, "process.info"), "w"
+    ) as process_info:
         process_info.write(processes)
     try:
         netstat = str(
@@ -172,7 +186,9 @@ def collect_volatile_data(gandalf_artefact_destination):
                 stderr=subprocess.PIPE,
             ).communicate()[0]
         )[2:-3]
-        with open(os.path.join(gandalf_artefact_destination, "netstat.info"), "w") as netstat_info:
+        with open(
+            os.path.join(gandalf_artefact_destination, "netstat.info"), "w"
+        ) as netstat_info:
             netstat_info.write(netstat)
     except:
         pass
@@ -184,11 +200,17 @@ def collect_volatile_data(gandalf_artefact_destination):
                 stderr=subprocess.PIPE,
             ).communicate()[0]
         )[2:-3]
-        with open(os.path.join(gandalf_artefact_destination, "ss.info"), "w") as ss_info:
+        with open(
+            os.path.join(gandalf_artefact_destination, "ss.info"), "w"
+        ) as ss_info:
             ss_info.write(ss)
     except:
         pass
-    print("      \033[1;32mAcquired volatile data from '{}'\033[1;m".format(gandalf_artefact_destination.split("/")[-2]))
+    print(
+        "      \033[1;32mAcquired volatile data from '{}'\033[1;m".format(
+            gandalf_artefact_destination.split("/")[-2]
+        )
+    )
 
 
 def collect_browser_artefact(
@@ -236,16 +258,33 @@ def collect_browser_artefact(
             ),
         ),
     )
+    print(
+        "      \033[1;32mAcquired '{}' browser artefacts for '{}' from '{}'\033[1;m".format(
+            browser,
+            user_profile,
+            gandalf_artefact_destination.split("/")[-2],
+        )
+    )
 
 
-def archive_artefacts(encryption, gandalf_destination, gandalf_host):
+def encrypt_archive(encryption_object, gandalf_host):
+    with open("{}.zip".format(gandalf_host), "rb") as zipfile:
+        zip_archive = zipfile.read()
+    encrypted = encryption_object.encrypt(zip_archive)
+    with open("{}.zip.enc".format(gandalf_host), "wb") as encrypted_zipfile:
+        encrypted_zipfile.write(encrypted)
+    print()
+    # delete the original zip here
+
+
+def archive_artefacts(encryption, encryption_object, gandalf_destination, gandalf_host):
     gandalf_archive = os.path.join(
         gandalf_destination, "{}.zip".format(gandalf_host.split("/")[-1])
     )
     cwd = os.getcwd()
     os.chdir(os.path.join(gandalf_host, ".."))
     with ZipFile(gandalf_archive, "w") as gandalf_archive:
-        if encryption.title() == "Key":
+        """if encryption.title() == "Key":
             pyminizip.compress(
                 gandalf_host,
                 gandalf_destination,
@@ -253,16 +292,16 @@ def archive_artefacts(encryption, gandalf_destination, gandalf_host):
                 "password",
                 5,
             )
-            """status = gpg.encrypt_file(gandalf_archive, ["gandalf@middle.earth"], output = gandalf_archive + ".enc")
+            status = gpg.encrypt_file(gandalf_archive, ["gandalf@middle.earth"], output = gandalf_archive + ".enc")
             #with ZipFile(gandalf_archive, "r") as gandalf_archive:
                 #status = gpg.encrypt_file(gandalf_archive, ["gandalf@middle.earth"], output = gandalf_archive + ".enc")
                 #status = gpg.encrypt_file(gandalf_archive, encryption_object, output = gandalf_archive + ".enc")
             print(status.ok)
-            print(status.stderr)"""
+            print(status.stderr)
         elif encryption.title() == "Password":
             gandalf_archive.setpassword(bytes(encryption))
         else:
-            pass
+            pass"""
         for archiveroot, archivedirs, archivefiles in os.walk(
             gandalf_host.split("/")[-1]
         ):
@@ -271,7 +310,14 @@ def archive_artefacts(encryption, gandalf_destination, gandalf_host):
                     gandalf_archive.write(os.path.join(archiveroot, archivefile))
             except ValueError as error:
                 if "ZIP does not support timestamps before 1980" in str(error):
-                    print("       \033[1;31mWARNING: '{}' could not be archived for '{}' as the timestamp is before 1980\033[1;m".format(os.path.join(archiveroot.split("/artefacts")[1], archivefile), gandalf_host.split("/")[-1]))
+                    print(
+                        "       \033[1;31mWARNING: '{}' could not be archived for '{}' as the timestamp is before 1980\033[1;m".format(
+                            os.path.join(
+                                archiveroot.split("/artefacts")[1], archivefile
+                            ),
+                            gandalf_host.split("/")[-1],
+                        )
+                    )
                 else:
                     print("       \033[1;33mERROR: {}\033[1;m".format(error))
             try:
@@ -279,24 +325,33 @@ def archive_artefacts(encryption, gandalf_destination, gandalf_host):
                     gandalf_archive.write(os.path.join(archiveroot, archivedir))
             except ValueError as error:
                 if "ZIP does not support timestamps before 1980" in str(error):
-                    print("       \033[1;31mWARNING: '{}' could not be archived for '{}' as the timestamp is before 1980\033[1;m".format(os.path.join(archiveroot.split("/artefacts")[1], archivedir), gandalf_host.split("/")[-1]))
+                    print(
+                        "       \033[1;31mWARNING: '{}' could not be archived for '{}' as the timestamp is before 1980\033[1;m".format(
+                            os.path.join(
+                                archiveroot.split("/artefacts")[1], archivedir
+                            ),
+                            gandalf_host.split("/")[-1],
+                        )
+                    )
                 else:
                     print("       \033[1;33mERROR: {}\033[1;m".format(error))
+    if encryption.title() == "Key":
+        encrypt_archive(encryption_object, gandalf_host)
+    elif encryption.title() == "Password":
+        encrypt_archive(encryption_object, gandalf_host)
+    else:
+        pass
     os.chdir(cwd)
 
 
 def acquire_artefacts(
     encryption,
     system_artefacts,
-    acquisition,
     # output_directory,
     # memory,
     # show_progress,
     # collect_files,
-    # no_prompt,
-    # encryption_object,
-    # gpg,
-    # pyminizip,
+    encryption_object,
     gandalf_destination,
     gandalf_host,
 ):
@@ -713,21 +768,6 @@ def acquire_artefacts(
                                                                 "History.db",
                                                             )
                                                         )
-                                                        print(
-                                                            "      \033[1;32mAcquired 'safari' browser artefacts for '{}' from '{}'\033[1;m".format(
-                                                                artefact_output_dir,
-                                                                gandalf_artefact_destination.split(
-                                                                    "/"
-                                                                )[
-                                                                    -2
-                                                                ],
-                                                                gandalf_artefact_destination.split(
-                                                                    "/"
-                                                                )[
-                                                                    -4
-                                                                ],
-                                                            )
-                                                        )
                                                     else:
                                                         pass
                                                 elif (
@@ -834,22 +874,33 @@ def acquire_artefacts(
                                                     pass
                                         else:
                                             pass
+                                previously_collected = print_progress(
+                                    artefact,
+                                    "{}+{}".format(
+                                        gandalf_host.split("/")[-1], user_profile
+                                    ),
+                                    artefact_output_dir,
+                                    previously_collected,
+                                )
                         else:
                             pass
                     else:
                         pass
         else:
             pass
-        previously_collected = print_progress(
-            artefact,
-            gandalf_host.split("/")[-1],
-            artefact_output_dir,
-            previously_collected,
-        )
+        if artefact_output_dir != "user":
+            previously_collected = print_progress(
+                artefact,
+                gandalf_host.split("/")[-1],
+                artefact_output_dir,
+                previously_collected,
+            )
+        else:
+            pass
     for collected_root, collected_dirs, collected_files in os.walk(gandalf_destination):
         for collected_dir in collected_dirs:
             os.chmod(os.path.join(collected_root, collected_dir), 0o755)
         for collected_file in collected_files:
             os.chmod(os.path.join(collected_root, collected_file), 0o755)
     os.chmod(gandalf_destination, 0o755)
-    archive_artefacts(encryption, gandalf_destination, gandalf_host)
+    archive_artefacts(encryption, encryption_object, gandalf_destination, gandalf_host)

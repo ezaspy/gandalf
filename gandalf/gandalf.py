@@ -1,53 +1,88 @@
 #!/usr/bin/env python3 -tt
 import argparse
 import getpass
-import gnupg
 import os
 import paramiko
-import pyminizip
 import random
 import shutil
 import subprocess
 import sys
 import time
+from scp import SCPClient
 
-from shire.collect_artefacts import acquire_artefacts
+from shire.filekey_encrypt import generate_filekey
+from shire.filekey_encrypt import overwrite_key
+from shire.passkey_encrypt import generate_cipher
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "encryption",
-    nargs=1,
-    help="Encrpytion Object - Key (recommended), Password or None",
+    "EncryptionMethod",
+    help="Encrpytion Method - Key (recommended), Password or None",
 )
-parser.add_argument("acquisition", nargs=1, help="Acquisition type - Local or Remote")
-# parser.add_argument("output-directory", nargs=1, help="Destination directory of where the collected will be stored")
-# parser.add_argument("memory", nargs=1, help="Collect a live memory dump")
-# parser.add_argument("show-progress", nargs=1, help="Print progress of individual artefact acquisition to screen")
-# parser.add_argument("collect-files", nargs=1, help="Collect files containing string (provided in files.list) in file name")
-# parser.add_argument("force", nargs=1, help="Do not unnecessarily prompt")
-
+parser.add_argument(
+    "AcquisitionMethod",
+    help="Acquisition Method - Local or Remote",
+)
+parser.add_argument(
+    "-O",
+    "--OutputDirectory",
+    nargs="?",
+    help="Directory location to output the collected artefacts",
+    const=True,
+    default=False,
+)
+parser.add_argument(
+    "-M",
+    "--Memory",
+    help="Acquire live memory",
+    action="store_const",
+    const=True,
+    default=False,
+)
+parser.add_argument(
+    "-P",
+    "--ShowProgress",
+    help="Show progress of each artefact being collected",
+    action="store_const",
+    const=True,
+    default=False,
+)
+parser.add_argument(
+    "-F",
+    "--CollectFiles",
+    nargs="?",
+    help="Collect specific files, anywhere in the fileystem",
+    const=True,
+)
 
 args = parser.parse_args()
-encryption_method = args.encryption
-acquisition_method = args.acquisition
-# output_dir = args.output_directory
-# mem = args.memory
-# progress = args.show_progress
-# files = args.collect_file
-# force = args.force
+encryption_method = args.EncryptionMethod
+acquisition_method = args.AcquisitionMethod
+output_dir = args.OutputDirectory
+mem = args.Memory
+progress = args.ShowProgress
+files = args.CollectFiles
 
-encryption = encryption_method[0]
-acquisition = acquisition_method[0]
-# output_directory = output_dir[0]
-# memory = mem[0]
-# show_progress = progress[0]
-# collect_files = files[0]
-# no_prompt = force[0]
-
+if output_dir == True:
+    output_directory = output_dir[1]
+else:
+    pass
+if mem == True:
+    memory = mem[0]
+else:
+    pass
+if progress == True:
+    show_progress = progress[0]
+else:
+    pass
+if files == True:
+    collect_files = files[1]
+else:
+    pass
 
 gandalf_root = "/tmp/gandalf"
-gandalf_destination = os.path.join(gandalf_root, "acquisitions")
+gandalf_destination = os.path.join(gandalf_root, "gandalf", "acquisitions")
 system_artefacts = {
     "/.Trashes/": "trash",
     "/Library/Logs/": "logs",
@@ -81,7 +116,7 @@ system_artefacts = {
     "/private/etc/shadow": "",
     "/private/etc/systemd": "",
     "/swapfile": "memory",
-    "/tmp/": "tmp",
+    # "/tmp/": "tmp",
     "/usr/lib/systemd/user/": "services",
     "/var/cache/cups/": "",
     "/var/at/": "cron",
@@ -151,37 +186,31 @@ quotes = [
     "     Not all those who wander are lost.\n",
     "     It's the deep breath before the plunge.\n",
 ]
+ssh = paramiko.client.SSHClient()
 
 
-def obtain_encryption_key():
-    subprocess.Popen(
-        ["gpg", "--delete-secret-and-public-key", "gandalf@middle.earth", "--yes"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ).communicate()
-    gpg = gnupg.GPG("/usr/local/bin/gpg")
-    gpg.encoding = "utf-8"
-    key_input_data = gpg.gen_key_input(
-        name_email="gandalf@middle.earth",
-        passphrase="shadowfax",
-        key_type="RSA",
-        key_length="2048",
-    )
-    gandalf_key = gpg.gen_key(key_input_data)
-    # exporting public key
-    subprocess.Popen(
-        ["gpg", "--export", "gandalf@middle.earth", ">", "gandalf.pub"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ).communicate()
-    # exporting private key
-    subprocess.Popen(
-        ["gpg", "--export-secret-key", "gandalf@middle.earth", ">", "gandalf.asc"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ).communicate()
-    encryption_object = gandalf_key
-    return gpg, encryption_object
+def configure_acquisition(
+    encryption_method,
+    system_artefacts,
+    # output_directory,
+    # memory,
+    # show_progress,
+    # collect_files,
+    encryption_object,
+    gandalf_destination,
+    gandalf_host,
+):
+    shutil.copy2("shire/collect_artefacts", "tools/acquire_artefacts.py")
+    with open("tools/acquire_artefacts.py", "a") as acquire_artefacts:
+        acquire_artefacts.write(
+            '\n\nacquire_artefacts(\n    "{}",\n    {},\n    # output_directory,\n    # memory,\n    # show_progress,\n    # collect_files,\n    {},\n    "{}",\n    "{}",\n)\n'.format(
+                encryption_method,
+                system_artefacts,
+                encryption_object,
+                gandalf_destination,
+                gandalf_host,
+            )
+        )
 
 
 def main():
@@ -202,19 +231,21 @@ def main():
         )
     )
     if (
-        encryption.title() != "Key"
-        and encryption.title() != "Password"
-        and encryption.title() != "None"
+        encryption_method.title() != "Key"
+        and encryption_method.title() != "Password"
+        and encryption_method.title() != "None"
     ):
         print(
             "     Invalid encryption method - it must be either 'Key', 'Password' or 'None'\n       Please try again.\n\n"
         )
+        sys.exit()
     else:
         pass
-    if acquisition.title() != "Local" and acquisition.title() != "Remote":
+    if acquisition_method.title() != "Local" and acquisition_method.title() != "Remote":
         print(
             "     Invalid acquisition method - it must be either 'Local' or 'Remote'\n       Please try again.\n\n"
         )
+        sys.exit()
     else:
         pass
     if os.path.exists(gandalf_destination):
@@ -222,82 +253,157 @@ def main():
     else:
         pass
     try:
-        os.mkdir(gandalf_root)
-    except FileExistsError:
-        pass
-    os.mkdir(gandalf_destination)
-    if encryption.title() == "Key":
-        # gpg, encryption_object = obtain_encryption_key()
-        if acquisition_method == "Remote":
-            k = paramiko.RSAKey.from_private_key_file(encryption_object)
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(hostname="172.16.213.132", username="gandalfthewhite", pkey=k)
-            ssh = paramiko.SSHClient()
-        else:
-            pass
-    elif encryption.title() == "Password":
-        gpg = None
-        if acquisition_method == "Remote":
-            try:
-                ssh.connect(
-                    "172.16.213.132", username="gandalfthewhite", password="shadowfax"
-                )
-                ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(cmd_to_execute)
-            except ssh_exception.NoValidConnectionsError as E:
-                print("SSH connection could not be established\n")
-        else:
-            pass
-        encryption_object = gandalf_pswd
-    else:  # None
-        pass
-    # print(encryption_object)
-    hostlist = []
-    if acquisition == "Local":
-        hostlist.append(
-            str(
-                subprocess.Popen(
-                    ["hostname"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                ).communicate()[0]
-            )[2:-3]
+        subprocess.Popen(["mkdir", "-p", "{}".format(gandalf_destination)])
+    except:
+        print(
+            "     {} could not be created. Are you running as 'root'?\n       Please try again.\n\n".format(
+                gandalf_destination
+            )
         )
-    else:
-        with open("/tmp/gandalf/gandalf/hosts.list") as host_list:
-            hostlist = host_list.readlines()  # make hostlist a list
-    for host in hostlist:
-        gandalf_host = os.path.join(gandalf_destination, host)
-        acquire_artefacts(
-            encryption,
+        sys.exit()
+    if encryption_method.title() == "Key":
+        encryption_object, key_name = generate_filekey()
+        key_confirm = input(
+            "    \033[1;30mHave you obtained a copy of the encryption key? Without it, you won't be able to decrypt the acquisition archive!\033[1;m [Y/n] "
+        ).encode()
+        if key_confirm != "n":
+            confirm_key_delete = input(
+                "     '{}' will now be deleted. Are you sure?! [Y/n] ".format(key_name)
+            )
+            if confirm_key_delete != "n":
+                overwrite_key(key_name)
+            else:
+                pass
+        else:
+            pass
+        print()
+    elif encryption_method.title() == "Password":
+        encryption_object = generate_cipher()
+        print()
+    else:  # None
+        encryption_object = None
+    hostlist = []
+    if acquisition_method == "Local":
+        configure_acquisition(
+            encryption_method,
             system_artefacts,
-            acquisition,
+            acquisition_method,
             # output_directory,
             # memory,
             # show_progress,
             # collect_files,
-            # no_prompt,
-            # encryption_object,
-            # gpg,
-            # pyminizip,
+            encryption_object,
             gandalf_destination,
-            gandalf_host,
+            os.path.join(gandalf_destination, host),
         )
-    """for directory in os.listdir(gandalf_destination):
-        if os.path.isdir(os.path.join(gandalf_destination, directory)):
-            shutil.rmtree(os.path.join(gandalf_destination, directory))
-        else:
-            pass"""
+        subprocess.Popen("python3", "acquire_artefacts.py")
+        # prompt for "archive been collected?"
+        # collect archive
+        """for directory in os.listdir(gandalf_destination):
+            if os.path.isdir(os.path.join(gandalf_destination, directory)):
+                shutil.rmtree(os.path.join(gandalf_destination, directory))
+            else:
+                pass"""
+    else:
+        with open("lists/hosts.list") as host_list:
+            for each_host in host_list:
+                if not each_host.startswith("#"):
+                    hostlist.append(each_host.strip())
+                else:
+                    pass
+        for host in hostlist:
+            print("    \033[1;30mAttempting to connect to '{}'...\033[1;m".format(host))
+            ssh_ip = input("     \033[1;30mIP address:\033[1;m ")
+            ssh_user = input("     \033[1;30m  Username:\033[1;m ")
+            ssh_pswd = getpass.getpass("     \033[1;30m  Password:\033[1;m ")
+            gandalf_host = os.path.join(gandalf_destination, host)
+            configure_acquisition(
+                encryption_method,
+                system_artefacts,
+                # output_directory,
+                # memory,
+                # show_progress,
+                # collect_files,
+                encryption_object,
+                gandalf_destination,
+                gandalf_host,
+            )
+            print()
+            try:
+                ssh.set_missing_host_key_policy(
+                    paramiko.AutoAddPolicy()
+                )  # initiating connection
+                ssh.connect(ssh_ip, username=ssh_user, password=ssh_pswd)
+                sshin, sshout, ssherr = ssh.exec_command(
+                    "mkdir -p {}".format(gandalf_destination)
+                )  # making gandalf directories
+                scp = SCPClient(ssh.get_transport())
+                scp.put(
+                    "tools/acquire_artefacts.py", "/tmp/gandalf/acquire_artefacts.py"
+                )  # sending gandalf acquisition script
+                acquire_in, acquire_out, acquire_err = ssh.exec_command(
+                    "python3 /tmp/gandalf/acquire_artefacts.py"
+                )  # executing gandalf acquisition script
+                exec_script = acquire_out.read().decode()
+                print(exec_script)
+                _, list_out, list_err = ssh.exec_command(
+                    "ls /tmp/gandalf/gandalf/acquisitions/"
+                )  # listing acquisition archive directory
+                dir_listing = str(list_out.read())
+                if (
+                    "{}.zip.enc".format(gandalf_host.split("/")[-1]) in dir_listing
+                ):  # checking for encrypted archive
+                    scp.get(
+                        "/tmp/gandalf/gandalf/acquisitions/{}.zip.enc".format(
+                            gandalf_host.split("/")[-1]
+                        ),
+                        "./",
+                    )
+                    print(
+                        "     \033[1;30mEncrypted archive collected for '{}'\033[1;m".format(
+                            gandalf_host.split("/")[-1]
+                        )
+                    )
+                elif (
+                    "{}.zip".format(gandalf_host.split("/")[-1]) in dir_listing
+                ):  # checking for unencrypted archive
+                    scp.get(
+                        "/tmp/gandalf/gandalf/acquisitions/{}.zip".format(
+                            gandalf_host.split("/")[-1]
+                        ),
+                        "./",
+                    )
+                    print(
+                        "     \033[1;30mArchive collected for '{}'\033[1;m".format(
+                            gandalf_host.split("/")[-1]
+                        )
+                    )
+                else:
+                    print(
+                        "     \033[1;30mArchive could not be collected, please try again for '{}'\033[1;m\n".format(
+                            gandalf_host.split("/")[-1]
+                        )
+                    )
+                _, rm_out, rm_err = ssh.exec_command(
+                    "rm -rf /tmp/gandalf/"
+                )  # deleting gandalf
+                ssh.close()
+            except paramiko.ssh_exception.NoValidConnectionsError as E:
+                print("SSH connection could not be established\n")
+            print()
     endtime = time.time()
-    diffmins = "{} minutes".format(str(round((endtime - starttime)/60)))
-    diffsecs = "{} seconds".format(str(round((endtime - starttime)%60)))
+    diffmins = "{} minutes".format(str(round((endtime - starttime) / 60)))
+    diffsecs = "{} seconds".format(str(round((endtime - starttime) % 60)))
     if int(diffmins.split(" ")[0]) == 1:
         diffmins = diffmins[0:-1]
     else:
         pass
     if int(diffsecs.split(" ")[0]) > 0:
-        seconds  = "and {}".format(diffsecs)
+        seconds = "and {}".format(diffsecs)
     else:
         seconds = ""
     print(
-        "\n\n  \033[1;30m-> Finished. Total elapsed time: {} {}\033[1;m\n    ----------------------------------------".format(
+        "\n  \033[1;30m-> Finished. Total elapsed time: {} {}\033[1;m\n    ----------------------------------------".format(
             str(diffmins), seconds
         )
     )
@@ -309,5 +415,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# https://medium.com/@almirx101/pgp-key-pair-generation-and-encryption-and-decryption-examples-in-python-3-a72f56477c22#id_token=eyJhbGciOiJSUzI1NiIsImtpZCI6IjkxMWUzOWUyNzkyOGFlOWYxZTlkMWUyMTY0NmRlOTJkMTkzNTFiNDQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiIyMTYyOTYwMzU4MzQtazFrNnFlMDYwczJ0cDJhMmphbTRsamRjbXMwMHN0dGcuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiIyMTYyOTYwMzU4MzQtazFrNnFlMDYwczJ0cDJhMmphbTRsamRjbXMwMHN0dGcuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDM4Mzc1NDM0OTI1Njk4MTkwMjgiLCJlbWFpbCI6ImJlbnNtdGgzOEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmJmIjoxNjkxNjgxODkyLCJuYW1lIjoiQmVuIFNtaXRoIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FBY0hUdGV4ZnJ6MThpeUtCeGU2UC1sVF85X3BESEFJSW9lVjh6RWdrZWw0YjVsbE9mdz1zOTYtYyIsImdpdmVuX25hbWUiOiJCZW4iLCJmYW1pbHlfbmFtZSI6IlNtaXRoIiwibG9jYWxlIjoiZW4iLCJpYXQiOjE2OTE2ODIxOTIsImV4cCI6MTY5MTY4NTc5MiwianRpIjoiMGViZjgxMzc4MzJlMzE5N2Y5MGRjZjkyNDU5MDY4NzEyZDgyMzVhNSJ9.UhHnIbwCI2RnSXiHqiFcVA2i1JPkWo2B4C6sKCleE46hJTatjy-_SrkA1lcjjSobYed-DV-2WafXGTH4LhG96c-eHxlV84i2FXiVHkSTcyiufOJeO8sFGtx208DBRFpU4Zkha0Nk90uU5dFWxiyO_NgFbq9--CMnSCwNpZ8GlZhXBQh0PaIia_EN1FvNlXD1RWv7deUHh-PDrgbxPAsCQ1Yni75bc6SeSfpwCg1Ul9bwyJ7hzH59gvOnnYWiOljU3ksY4LbjCPXRKV1SQ7ilUN7VoE2v3MN4U_6_cHzAfHUtDCH4bTlZ5SsBrc3__MJM755oZk0ZdOC4wlXhqCjkXg
