@@ -1,6 +1,7 @@
 #!/usr/bin/env python3 -tt
 import hashlib
 import os
+import shlex
 import shutil
 import subprocess
 from datetime import datetime
@@ -155,7 +156,7 @@ def print_progress(artefact, gandalf_host, artefact_output_dir, previously_colle
     return previously_collected
 
 
-def collect_volatile_data(gandalf_artefact_destination):
+def collect_host_info():
     platform = str(
         subprocess.Popen(
             ["uname", "-a"],
@@ -163,6 +164,32 @@ def collect_volatile_data(gandalf_artefact_destination):
             stderr=subprocess.PIPE,
         ).communicate()[0]
     )[2:-3]
+    return platform
+
+
+def acquire_memory(mem_tool, command_params, gandalf_host):
+    with ZipFile("/tmp/gandalf/{}.zip".format(mem_tool), "r") as mem_tool_zip:
+        mem_tool_zip.extractall("/tmp/gandalf/")
+    os.chdir("/tmp/gandalf/")
+    subprocess.Popen(
+        command_params, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    ).communicate()
+    if (mem_tool == "avml-main" and os.path.exists("/tmp/gandalf/gandalf/acquisitions/{}/artefacts/{}.mem".format(gandalf_host, gandalf_host))) or mem_tool == "osxpmem.app" and os.path.exists("/tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.aff4".format(gandalf_host)):
+        print(
+            "       \033[1;32mAcquired memory dump from '{}'\033[1;m".format(
+                gandalf_host,
+            )
+        )
+    else:
+        print(
+            "       \033[1;31mUnable to acquire memory dump from '{}'\033[1;m".format(
+                gandalf_host,
+            )
+        )
+
+
+def collect_volatile_data(gandalf_artefact_destination):
+    platform = collect_host_info()
     with open(
         os.path.join(gandalf_artefact_destination, "host.info"), "w"
     ) as platform_info:
@@ -274,37 +301,16 @@ def encrypt_archive(encryption_object, gandalf_host):
     with open("{}.zip.enc".format(gandalf_host), "wb") as encrypted_zipfile:
         encrypted_zipfile.write(encrypted)
     print()
-    # delete the original zip here
 
 
-def archive_artefacts(encryption, encryption_object, gandalf_destination, gandalf_host):
+def archive_artefacts(encryption, encryption_object, gandalf_directory, gandalf_host):
     gandalf_archive = os.path.join(
-        gandalf_destination, "{}.zip".format(gandalf_host.split("/")[-1])
+        gandalf_directory, "{}.zip".format(gandalf_host.split("/")[-1])
     )
     cwd = os.getcwd()
     os.chdir(os.path.join(gandalf_host, ".."))
     with ZipFile(gandalf_archive, "w") as gandalf_archive:
-        """if encryption.title() == "Key":
-            pyminizip.compress(
-                gandalf_host,
-                gandalf_destination,
-                gandalf_archive.split("/")[-1],
-                "password",
-                5,
-            )
-            status = gpg.encrypt_file(gandalf_archive, ["gandalf@middle.earth"], output = gandalf_archive + ".enc")
-            #with ZipFile(gandalf_archive, "r") as gandalf_archive:
-                #status = gpg.encrypt_file(gandalf_archive, ["gandalf@middle.earth"], output = gandalf_archive + ".enc")
-                #status = gpg.encrypt_file(gandalf_archive, encryption_object, output = gandalf_archive + ".enc")
-            print(status.ok)
-            print(status.stderr)
-        elif encryption.title() == "Password":
-            gandalf_archive.setpassword(bytes(encryption))
-        else:
-            pass"""
-        for archiveroot, archivedirs, archivefiles in os.walk(
-            gandalf_host.split("/")[-1]
-        ):
+        for archiveroot, _, archivefiles in os.walk(gandalf_host.split("/")[-1]):
             try:
                 for archivefile in archivefiles:
                     gandalf_archive.write(os.path.join(archiveroot, archivefile))
@@ -314,21 +320,6 @@ def archive_artefacts(encryption, encryption_object, gandalf_destination, gandal
                         "       \033[1;31mWARNING: '{}' could not be archived for '{}' as the timestamp is before 1980\033[1;m".format(
                             os.path.join(
                                 archiveroot.split("/artefacts")[1], archivefile
-                            ),
-                            gandalf_host.split("/")[-1],
-                        )
-                    )
-                else:
-                    print("       \033[1;33mERROR: {}\033[1;m".format(error))
-            try:
-                for archivedir in archivedirs:
-                    gandalf_archive.write(os.path.join(archiveroot, archivedir))
-            except ValueError as error:
-                if "ZIP does not support timestamps before 1980" in str(error):
-                    print(
-                        "       \033[1;31mWARNING: '{}' could not be archived for '{}' as the timestamp is before 1980\033[1;m".format(
-                            os.path.join(
-                                archiveroot.split("/artefacts")[1], archivedir
                             ),
                             gandalf_host.split("/")[-1],
                         )
@@ -347,12 +338,12 @@ def archive_artefacts(encryption, encryption_object, gandalf_destination, gandal
 def acquire_artefacts(
     encryption,
     system_artefacts,
-    # output_directory,
-    # memory,
-    # show_progress,
-    # collect_files,
+    output_directory,
+    memory,
+    access_times,
+    collect_files,
     encryption_object,
-    gandalf_destination,
+    gandalf_directory,
     gandalf_host,
 ):
     previously_collected = []
@@ -361,23 +352,29 @@ def acquire_artefacts(
         gandalf_audit.write("datetime,hostname,artefact,collected\n")
     gandalf_artefact_destination = os.path.join(gandalf_host, "artefacts")
     os.mkdir(gandalf_artefact_destination)
-    collect_volatile_data(gandalf_artefact_destination)
-    """if filelisting:
-        with open(
-            os.path.join(gandalf_artefact_destination, "file_directory_listing.csv"), "w"
-        ) as file_listing:
-            file_listing.write("path,file\n")
+    if memory != "None":
+        print(
+            "      Acquiring memory dump from '{}'".format(
+                gandalf_host.split("/")[-1],
+            )
+        )
+        platform = collect_host_info()
+        if "GNU/Linux" in platform and "Linux" in platform and "Darwin" not in platform:
+            command_params = ["sudo chmod +x avml && sudo ./avml /tmp/gandalf/gandalf/acquisitions/{}/artefacts/{}.mem".format(gandalf_host.split("/")[-1], gandalf_host.split("/")[-1])]
+            acquire_memory("avml-main", command_params, gandalf_host.split("/")[-1])
+        elif (
+            "Darwin" in platform
+            and "GNU/Linux" not in platform
+            and "Linux" not in platform
+        ):
+            command_params = ["sudo chown -R root:wheel osxpmem.app/ && sudo chmod +x osxpmem.app/osxpmem && sudo osxpmem.app/osxpmem -o /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.aff4 && sudo osxpmem.app/osxpmem -e /dev/pmem -o /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.raw /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.aff4".format(gandalf_host.split("/")[-1], gandalf_host.split("/")[-1], gandalf_host.split("/")[-1])]
+            acquire_memory("osxpmem.app", command_params, gandalf_host.split("/")[-1])
+        else:
+            print("      \033[1;31mUnable to acquire memory; platform is neither Linux or macOS.\033[1;m")
+        print()
     else:
         pass
-    for gandalfroot, _, gandalffiles in os.walk("/"):
-        for gandalffile in gandalffiles:
-            with open(
-                os.path.join(
-                    gandalf_artefact_destination, "file_directory_listing.csv"
-                ),
-                "a",
-            ) as file_listing:
-                file_listing.write("{},{}\n".format(gandalfroot, gandalffile))"""
+    collect_volatile_data(gandalf_artefact_destination)
     for artefact, artefact_output_dir in system_artefacts.items():
         if os.path.exists(artefact):
             if not artefact.endswith("/") and artefact_output_dir == "":  # file
@@ -897,10 +894,121 @@ def acquire_artefacts(
             )
         else:
             pass
-    for collected_root, collected_dirs, collected_files in os.walk(gandalf_destination):
+    if access_times != "None":
+        print()
+        print(
+            "      \033[1;32mObtaining files' LastAccess times from '{}'...\033[1;m".format(
+                gandalf_host.split("/")[-1]
+            )
+        )
+        for access_files_root, _, access_files_files in os.walk("/"):
+            for access_files_file in access_files_files:
+                accessed_file = os.path.join(access_files_root, access_files_file)
+                if (
+                    os.path.exists(accessed_file)
+                    and os.path.isfile(accessed_file)
+                    and "/tmp/gandalf/gandalf/" not in accessed_file
+                ):
+                    if not os.path.exists(
+                        "/tmp/gandalf/gandalf/acquisitions/{}/LastAccessTimes.csv".format(
+                            gandalf_host.split("/")[-1]
+                        )
+                    ):
+                        with open(
+                            "/tmp/gandalf/gandalf/acquisitions/{}/LastAccessTimes.csv".format(
+                                gandalf_host.split("/")[-1]
+                            ),
+                            "w",
+                        ) as files_accessed:
+                            files_accessed.write("File,Path,LastAccessTime\n")
+                    else:
+                        pass
+                    with open(
+                        "/tmp/gandalf/gandalf/acquisitions/{}/LastAccessTimes.csv".format(
+                            gandalf_host.split("/")[-1]
+                        ),
+                        "a",
+                    ) as files_accessed:
+                        try:
+                            iinfo = os.stat(accessed_file)
+                            isize = iinfo.st_size
+                        except:
+                            pass
+                        if isize > 0:
+                            files_accessed.write(
+                                "{},{},{}\n".format(
+                                    access_files_file,
+                                    access_files_root,
+                                    str(
+                                        datetime.fromtimestamp(
+                                            os.path.getatime(accessed_file)
+                                        )
+                                    ),
+                                )
+                            )
+                        else:
+                            pass
+                else:
+                    pass
+    else:
+        pass
+    if collect_files != "None":
+        print()
+        print(
+            "      \033[1;32mCollecting files from '{}'...\033[1;m".format(
+                gandalf_host.split("/")[-1]
+            )
+        )
+        for collect_files_root, _, collect_files_files in os.walk("/"):
+            for collect_files_file in collect_files_files:
+                file_to_collect = os.path.join(collect_files_root, collect_files_file)
+                if (
+                    os.path.isfile(file_to_collect)
+                    and "/tmp/gandalf/gandalf/" not in file_to_collect
+                ):
+                    with open("lists/files.list") as files_list:
+                        for filename in files_list:
+                            if filename == collect_files_file:
+                                try:
+                                    print(
+                                        "       Found '\033[1;32m{}\033[1;m' in '\033[1;32m{}\033[1;m'...".format(
+                                            filename,
+                                            file_to_collect.replace(filename, ""),
+                                            gandalf_host.split("/")[-1],
+                                        )
+                                    )
+                                    if not os.path.exists(
+                                        os.path.join(output_directory, "files")
+                                    ):
+                                        os.mkdir(
+                                            os.path.join(output_directory, "files")
+                                        )
+                                    else:
+                                        pass
+                                    shutil.copy2(
+                                        file_to_collect,
+                                        os.path.join(
+                                            output_directory,
+                                            "files",
+                                            "{}+{}+{}".format(
+                                                collect_files_root.split("/")[1],
+                                                collect_files_root.split("/")[-1],
+                                                collect_files_file,
+                                            ),
+                                        ),
+                                    )
+                                except:
+                                    pass
+                            else:
+                                pass
+                else:
+                    pass
+    else:
+        pass
+    for collected_root, collected_dirs, collected_files in os.walk(gandalf_directory):
         for collected_dir in collected_dirs:
             os.chmod(os.path.join(collected_root, collected_dir), 0o755)
         for collected_file in collected_files:
             os.chmod(os.path.join(collected_root, collected_file), 0o755)
-    os.chmod(gandalf_destination, 0o755)
-    archive_artefacts(encryption, encryption_object, gandalf_destination, gandalf_host)
+    os.chmod(gandalf_directory, 0o755)
+    archive_artefacts(encryption, encryption_object, gandalf_directory, gandalf_host)

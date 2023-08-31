@@ -1,18 +1,19 @@
 #!/usr/bin/env python3 -tt
 import argparse
+import base64
 import getpass
 import os
 import paramiko
 import random
 import shutil
+import socket
 import subprocess
 import sys
 import time
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from scp import SCPClient
-
-from shire.filekey_encrypt import generate_filekey
-from shire.filekey_encrypt import overwrite_key
-from shire.passkey_encrypt import generate_cipher
 
 
 parser = argparse.ArgumentParser()
@@ -28,7 +29,7 @@ parser.add_argument(
     "-O",
     "--OutputDirectory",
     nargs="?",
-    help="Directory location to output the collected artefacts",
+    help="Directory location to output the artefact archive",
     const=True,
     default=False,
 )
@@ -41,9 +42,9 @@ parser.add_argument(
     default=False,
 )
 parser.add_argument(
-    "-P",
-    "--ShowProgress",
-    help="Show progress of each artefact being collected",
+    "-A",
+    "--AccessTimes",
+    help="Obtain Last Access Times for every file",
     action="store_const",
     const=True,
     default=False,
@@ -51,9 +52,10 @@ parser.add_argument(
 parser.add_argument(
     "-F",
     "--CollectFiles",
-    nargs="?",
     help="Collect specific files, anywhere in the fileystem",
+    action="store_const",
     const=True,
+    default=False,
 )
 
 args = parser.parse_args()
@@ -61,28 +63,9 @@ encryption_method = args.EncryptionMethod
 acquisition_method = args.AcquisitionMethod
 output_dir = args.OutputDirectory
 mem = args.Memory
-progress = args.ShowProgress
+access_times = args.AccessTimes
 files = args.CollectFiles
 
-if output_dir == True:
-    output_directory = output_dir[1]
-else:
-    pass
-if mem == True:
-    memory = mem[0]
-else:
-    pass
-if progress == True:
-    show_progress = progress[0]
-else:
-    pass
-if files == True:
-    collect_files = files[1]
-else:
-    pass
-
-gandalf_root = "/tmp/gandalf"
-gandalf_destination = os.path.join(gandalf_root, "gandalf", "acquisitions")
 system_artefacts = {
     "/.Trashes/": "trash",
     "/Library/Logs/": "logs",
@@ -186,31 +169,93 @@ quotes = [
     "     Not all those who wander are lost.\n",
     "     It's the deep breath before the plunge.\n",
 ]
-ssh = paramiko.client.SSHClient()
+gandalf_root = "/tmp/gandalf"
+gandalf_directory = os.path.join(gandalf_root, "gandalf", "acquisitions")
+if output_dir != False:
+    output_directory = output_dir[0]
+else:
+    output_directory = gandalf_directory
+if mem != False:
+    memory = "True"
+else:
+    memory = "None"
+if access_times == True:
+    access_times = "True"
+else:
+    access_times = "None"
+if files == True:
+    collect_files = "True"
+else:
+    collect_files = "None"
+
+
+def overwrite_key(key_name):
+    with open(key_name, "wb") as keyfile:
+        keyfile.write("YOU SHALL NOT PASS!")
+    os.remove(key_name)  # delete key
+
+
+def generate_filekey():
+    key = Fernet.generate_key()
+    key_name = "shadowfax.key"
+    with open(key_name, "wb") as keyfile:
+        keyfile.write(key)
+    with open(key_name, "rb") as keyfile:
+        filekey = keyfile.read()
+    print("     Encryption key 'shadowfax.key' created.\r")
+    overwrite_key(key_name)
+    return Fernet(filekey), key_name
+
+
+def generate_cipher():
+    pswd = getpass.getpass(
+        "    \033[1;30mEnter password to encrypt acquisition archive:\033[1;m "
+    ).encode()
+    password = bytes(pswd)
+    salt = input("    \033[1;30mEnter salt [isengard.pork]:\033[1;m ")
+    if salt != "" or salt == "isengard.pork":
+        pswdsalt = "isengard.pork"
+    else:
+        pswdsalt = salt
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=bytes(pswdsalt.encode()),
+        iterations=480000,
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(password))
+    cipher = Fernet(key)
+    print("     Cipher created successfully\r")
+    return cipher
 
 
 def configure_acquisition(
     encryption_method,
     system_artefacts,
-    # output_directory,
-    # memory,
-    # show_progress,
-    # collect_files,
+    output_directory,
+    memory,
+    access_times,
+    collect_files,
     encryption_object,
-    gandalf_destination,
+    gandalf_directory,
     gandalf_host,
 ):
     shutil.copy2("shire/collect_artefacts", "tools/acquire_artefacts.py")
     with open("tools/acquire_artefacts.py", "a") as acquire_artefacts:
         acquire_artefacts.write(
-            '\n\nacquire_artefacts(\n    "{}",\n    {},\n    # output_directory,\n    # memory,\n    # show_progress,\n    # collect_files,\n    {},\n    "{}",\n    "{}",\n)\n'.format(
+            '\n\nacquire_artefacts(\n    "{}",\n    {},\n    "{}",\n    "{}",\n    "{}",\n    "{}",\n    "{}",\n    "{}",\n    "{}",\n)\n'.format(
                 encryption_method,
                 system_artefacts,
+                output_directory,
+                memory,
+                access_times,
+                collect_files,
                 encryption_object,
-                gandalf_destination,
+                gandalf_directory,
                 gandalf_host,
             )
         )
+    os.chmod("tools/acquire_artefacts.py", 0o755)
 
 
 def main():
@@ -248,16 +293,16 @@ def main():
         sys.exit()
     else:
         pass
-    if os.path.exists(gandalf_destination):
-        shutil.rmtree(gandalf_destination)
+    if os.path.exists(gandalf_directory):
+        shutil.rmtree(gandalf_directory)
     else:
         pass
     try:
-        subprocess.Popen(["mkdir", "-p", "{}".format(gandalf_destination)])
+        subprocess.Popen(["mkdir", "-p", "{}".format(gandalf_directory)])
     except:
         print(
             "     {} could not be created. Are you running as 'root'?\n       Please try again.\n\n".format(
-                gandalf_destination
+                gandalf_directory
             )
         )
         sys.exit()
@@ -283,28 +328,59 @@ def main():
     else:  # None
         encryption_object = None
     hostlist = []
+    hostlist.append(socket.gethostname())
     if acquisition_method == "Local":
         configure_acquisition(
             encryption_method,
             system_artefacts,
-            acquisition_method,
-            # output_directory,
-            # memory,
-            # show_progress,
-            # collect_files,
+            output_directory,
+            memory,
+            access_times,
+            collect_files,
             encryption_object,
-            gandalf_destination,
-            os.path.join(gandalf_destination, host),
+            gandalf_directory,
+            os.path.join(gandalf_directory, hostlist[0]),
         )
-        subprocess.Popen("python3", "acquire_artefacts.py")
-        # prompt for "archive been collected?"
-        # collect archive
-        """for directory in os.listdir(gandalf_destination):
-            if os.path.isdir(os.path.join(gandalf_destination, directory)):
-                shutil.rmtree(os.path.join(gandalf_destination, directory))
+        if memory:
+            shutil.copy2("tools/memory/avml-main.zip", "/tmp/gandalf/")
+            shutil.copy2("tools/memory/osxpmem.app.zip", "/tmp/gandalf/")
+        else:
+            pass
+        subprocess.Popen(
+            ["sudo", "python3", "tools/acquire_artefacts.py"]
+        ).communicate()
+        if output_directory != gandalf_directory:
+            if os.path.exists(
+                os.path.join(gandalf_directory, "{}.zip.enc".format(hostlist[0]))
+            ):
+                shutil.move(
+                    os.path.join(gandalf_directory, "{}.zip.enc".format(hostlist[0])),
+                    os.path.join(output_directory, "{}.zip.enc".format(hostlist[0])),
+                )
             else:
-                pass"""
+                shutil.move(
+                    os.path.join(gandalf_directory, "{}.zip".format(hostlist[0])),
+                    os.path.join(output_directory, "{}.zip".format(hostlist[0])),
+                )
+            shutil.rmtree(gandalf_root)
+        else:
+            ext = ""
+            if os.path.exists(
+                os.path.join(gandalf_directory, "{}.zip.enc".format(hostlist[0]))
+            ):
+                ext = ".enc"
+            else:
+                pass
+            print(
+                "\n    '/tmp/gandalf/' will now be \033[1;31mdeleted\033[1;m. Ensure you have collected '{}/{}.zip{}'".format(
+                    gandalf_directory, hostlist[0], ext
+                )
+            )
+            time.sleep(4)
+            input("      Collected? [Yes] ")
+            shutil.rmtree("/tmp/gandalf")
     else:
+        ssh = paramiko.client.SSHClient()
         with open("lists/hosts.list") as host_list:
             for each_host in host_list:
                 if not each_host.startswith("#"):
@@ -312,20 +388,20 @@ def main():
                 else:
                     pass
         for host in hostlist:
-            print("    \033[1;30mAttempting to connect to '{}'...\033[1;m".format(host))
+            print("    \033[1;30mConnecting to '{}'...\033[1;m".format(host))
             ssh_ip = input("     \033[1;30mIP address:\033[1;m ")
             ssh_user = input("     \033[1;30m  Username:\033[1;m ")
             ssh_pswd = getpass.getpass("     \033[1;30m  Password:\033[1;m ")
-            gandalf_host = os.path.join(gandalf_destination, host)
+            gandalf_host = os.path.join(gandalf_directory, host)
             configure_acquisition(
                 encryption_method,
                 system_artefacts,
-                # output_directory,
-                # memory,
-                # show_progress,
-                # collect_files,
+                output_directory,
+                memory,
+                access_times,
+                collect_files,
                 encryption_object,
-                gandalf_destination,
+                gandalf_directory,
                 gandalf_host,
             )
             print()
@@ -335,9 +411,14 @@ def main():
                 )  # initiating connection
                 ssh.connect(ssh_ip, username=ssh_user, password=ssh_pswd)
                 sshin, sshout, ssherr = ssh.exec_command(
-                    "mkdir -p {}".format(gandalf_destination)
+                    "mkdir -p {}".format(gandalf_directory)
                 )  # making gandalf directories
                 scp = SCPClient(ssh.get_transport())
+                if memory:  # sending memory dump tools
+                    scp.put("tools/memory/avml-main.zip", "/tmp/gandalf/")
+                    scp.put("tools/memory/osxpmem.app.zip", "/tmp/gandalf/")
+                else:
+                    pass
                 scp.put(
                     "tools/acquire_artefacts.py", "/tmp/gandalf/acquire_artefacts.py"
                 )  # sending gandalf acquisition script
@@ -392,8 +473,8 @@ def main():
                 print("SSH connection could not be established\n")
             print()
     endtime = time.time()
-    diffmins = "{} minutes".format(str(round((endtime - starttime) / 60)))
-    diffsecs = "{} seconds".format(str(round((endtime - starttime) % 60)))
+    diffmins = "{} minutes".format(str(round(((endtime - starttime) - 4) / 60)))
+    diffsecs = "{} seconds".format(str(round(((endtime - starttime) - 4) % 60)))
     if int(diffmins.split(" ")[0]) == 1:
         diffmins = diffmins[0:-1]
     else:
