@@ -56,11 +56,10 @@ gandalf will collect all commonly utilised forensic artefacts but it will not pr
 
 ## Prerequisites
 
-The only prequisites for gandalf is permissions. You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. This is true for both Remote and Local acquisitions.<br>
-On Windows Server 2012+ remoting is enabled by default. You only need to confirm that your firewall rules allow inbound access. 
-Note that no Windows client OS has PowerShell remoting enabled by default.<br>
+You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. This is true for both Local and Remote acquisitions. On Windows Server 2012+ remoting is enabled by default. You only need to confirm that your firewall rules allow inbound access. However, no Windows client OS has PowerShell remoting enabled by default.<br>
+Additional installations may be required on Linux/macOS hosts for the target hosts to allow inbound SSH connections.<br>
 Please review the [SUPPORT.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) file for instructions on how to leverage and deploy gandalf.<br>
-Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md) file for instructions on how to enable PowerShell remoting.<br><br><br>
+Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md) file for instructions on how to enable PowerShell remoting.<br><br>
 
 <!-- USAGE EXAMPLES -->
 
@@ -75,42 +74,10 @@ Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/
 `.\Enter-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <C:\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-CollectFiles files.list]`<br><br>
 
 ### Linux/macOS
-**gandalf.py has not yet been developed**
 - Populate [hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md#Linux-macOS), if required<br>
 - Open Terminal<br>
 
-`sudo python3 gandalf.py [-h] [-E <Key/Password/None>] [-A <Local/Remote>] [-O] [-M] [-S] [-C <include_file>]`<br><br><br>
-
-<!-- CONTRIBUTING -->
-
-## Contributing
-
-Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-   <br><br><br>
-
-<!-- LICENSE -->
-
-## License
-
-Distributed under the MIT License. See [LICENSE](https://github.com/ezaspy/gandalf/LICENSE.txt) for more information.
-<br><br><br>
-
-<!-- CONTACT -->
-
-## Contact
-
-ezaspy - ezaspython (at) gmail (dot) com
-
-Project Link: [https://github.com/ezaspy/gandalf](https://github.com/ezaspy/gandalf)
-
-Other Projects: [https://github.com/ezaspy/](https://github.com/ezaspy/)
-<br><br><br>
+`sudo python3 gandalf.py [-h] <Key/Password/None> <Local/Remote> [-O <output_directory>] [-M] [-A] [-C <include_file>]`<br><br><br>
 
 <!-- ACKNOWLEDGEMENTS -->
 
