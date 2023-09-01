@@ -240,7 +240,7 @@ def configure_acquisition(
     gandalf_directory,
     gandalf_host,
 ):
-    shutil.copy2("shire/collect_artefacts", "tools/acquire_artefacts.py")
+    shutil.copy2("shire/collect_artefacts-py", "tools/acquire_artefacts.py")
     with open("tools/acquire_artefacts.py", "a") as acquire_artefacts:
         acquire_artefacts.write(
             '\n\nacquire_artefacts(\n    "{}",\n    {},\n    "{}",\n    "{}",\n    "{}",\n    "{}",\n    "{}",\n    "{}",\n    "{}",\n)\n'.format(
@@ -275,6 +275,11 @@ def main():
             random.choice(quotes)
         )
     )
+    if os.path.exists("C:\\TEMP\\gandalf") and acquisition_method.title() == "Local":
+        print("      gandalf.py is not designed to run Locally on Windows devices.\n       Please use Invoke-Gandalf.ps1 instead.\n\n")
+        sys.exit()
+    else:
+        pass
     if (
         encryption_method.title() != "Key"
         and encryption_method.title() != "Password"
@@ -342,8 +347,8 @@ def main():
             os.path.join(gandalf_directory, hostlist[0]),
         )
         if memory:
-            shutil.copy2("tools/memory/avml-main.zip", "/tmp/gandalf/")
-            shutil.copy2("tools/memory/osxpmem.app.zip", "/tmp/gandalf/")
+            shutil.copy2(os.path.join("tools", "memory", "avml-main.zip"), "/tmp/gandalf/")
+            shutil.copy2(os.path.join("tools", "memory", "osxpmem.app.zip"), "/tmp/gandalf/")
         else:
             pass
         subprocess.Popen(
@@ -362,7 +367,7 @@ def main():
                     os.path.join(gandalf_directory, "{}.zip".format(hostlist[0])),
                     os.path.join(output_directory, "{}.zip".format(hostlist[0])),
                 )
-            shutil.rmtree(gandalf_root)
+            shutil.rmtree("/tmp/gandalf/")
         else:
             ext = ""
             if os.path.exists(
@@ -378,10 +383,19 @@ def main():
             )
             time.sleep(4)
             input("      Collected? [Yes] ")
-            shutil.rmtree("/tmp/gandalf")
-    else:
+            shutil.rmtree("/tmp/gandalf/")
+    else: # Remote
+        if encryption_object == None:
+            confirm_encryption = input("     You have chosen to use no encryption when archiving the artefacts. This is not recommended.\n      Are you sure you want to proceed? y/N [N] :")
+            if confirm_encryption != "y":
+                print("      Please try again with the 'EncryptionObject' parameter set to 'Key' or 'Password'\n\n")
+                sys.exit()
+            else:
+                pass
+        else:
+            pass
         ssh = paramiko.client.SSHClient()
-        with open("lists/hosts.list") as host_list:
+        with open(os.path.join("lists", "hosts.list")) as host_list:
             for each_host in host_list:
                 if not each_host.startswith("#"):
                     hostlist.append(each_host.strip())
@@ -415,12 +429,12 @@ def main():
                 )  # making gandalf directories
                 scp = SCPClient(ssh.get_transport())
                 if memory:  # sending memory dump tools
-                    scp.put("tools/memory/avml-main.zip", "/tmp/gandalf/")
-                    scp.put("tools/memory/osxpmem.app.zip", "/tmp/gandalf/")
+                    scp.put(os.path.join("tools", "memory", "avml-main.zip"), "/tmp/gandalf/")
+                    scp.put(os.path.join("tools", "memory", "osxpmem.app.zip"), "/tmp/gandalf/")
                 else:
                     pass
                 scp.put(
-                    "tools/acquire_artefacts.py", "/tmp/gandalf/acquire_artefacts.py"
+                    os.path.join("tools", "acquire_artefacts.py"), "/tmp/gandalf/acquire_artefacts.py"
                 )  # sending gandalf acquisition script
                 acquire_in, acquire_out, acquire_err = ssh.exec_command(
                     "python3 /tmp/gandalf/acquire_artefacts.py"
@@ -438,7 +452,7 @@ def main():
                         "/tmp/gandalf/gandalf/acquisitions/{}.zip.enc".format(
                             gandalf_host.split("/")[-1]
                         ),
-                        "./",
+                        ".",
                     )
                     print(
                         "     \033[1;30mEncrypted archive collected for '{}'\033[1;m".format(
@@ -452,7 +466,7 @@ def main():
                         "/tmp/gandalf/gandalf/acquisitions/{}.zip".format(
                             gandalf_host.split("/")[-1]
                         ),
-                        "./",
+                        ".",
                     )
                     print(
                         "     \033[1;30mArchive collected for '{}'\033[1;m".format(
@@ -469,8 +483,8 @@ def main():
                     "rm -rf /tmp/gandalf/"
                 )  # deleting gandalf
                 ssh.close()
-            except paramiko.ssh_exception.NoValidConnectionsError as E:
-                print("SSH connection could not be established\n")
+            except paramiko.ssh_exception.NoValidConnectionsError:
+                print("      \033[1;31mSSH connection to '{}' could not be established.\033[1;m\n".format(host))
             print()
     endtime = time.time()
     diffmins = "{} minutes".format(str(round(((endtime - starttime) - 4) / 60)))
