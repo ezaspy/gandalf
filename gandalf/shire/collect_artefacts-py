@@ -1,7 +1,7 @@
 #!/usr/bin/env python3 -tt
 import hashlib
 import os
-import shlex
+import platform
 import shutil
 import subprocess
 from datetime import datetime
@@ -156,17 +156,6 @@ def print_progress(artefact, gandalf_host, artefact_output_dir, previously_colle
     return previously_collected
 
 
-def collect_host_info():
-    platform = str(
-        subprocess.Popen(
-            ["uname", "-a"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ).communicate()[0]
-    )[2:-3]
-    return platform
-
-
 def acquire_memory(mem_tool, command_params, gandalf_host):
     with ZipFile("/tmp/gandalf/{}.zip".format(mem_tool), "r") as mem_tool_zip:
         mem_tool_zip.extractall("/tmp/gandalf/")
@@ -189,11 +178,11 @@ def acquire_memory(mem_tool, command_params, gandalf_host):
 
 
 def collect_volatile_data(gandalf_artefact_destination):
-    platform = collect_host_info()
+    os_platform = str(platform.uname())
     with open(
         os.path.join(gandalf_artefact_destination, "host.info"), "w"
     ) as platform_info:
-        platform_info.write(platform)
+        platform_info.write(os_platform)
     processes = str(
         subprocess.Popen(
             ["ps", "aux"],
@@ -358,14 +347,14 @@ def acquire_artefacts(
                 gandalf_host.split("/")[-1],
             )
         )
-        platform = collect_host_info()
-        if "GNU/Linux" in platform and "Linux" in platform and "Darwin" not in platform:
+        os_platform = str(platform.uname())
+        if "GNU/Linux" in os_platform and "Linux" in os_platform and "Darwin" not in os_platform:
             command_params = ["sudo chmod +x avml && sudo ./avml /tmp/gandalf/gandalf/acquisitions/{}/artefacts/{}.mem".format(gandalf_host.split("/")[-1], gandalf_host.split("/")[-1])]
             acquire_memory("avml-main", command_params, gandalf_host.split("/")[-1])
         elif (
-            "Darwin" in platform
-            and "GNU/Linux" not in platform
-            and "Linux" not in platform
+            "Darwin" in os_platform
+            and "GNU/Linux" not in os_platform
+            and "Linux" not in os_platform
         ):
             command_params = ["sudo chown -R root:wheel osxpmem.app/ && sudo chmod +x osxpmem.app/osxpmem && sudo osxpmem.app/osxpmem -o /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.aff4 && sudo osxpmem.app/osxpmem -e /dev/pmem -o /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.raw /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.aff4".format(gandalf_host.split("/")[-1], gandalf_host.split("/")[-1], gandalf_host.split("/")[-1])]
             acquire_memory("osxpmem.app", command_params, gandalf_host.split("/")[-1])
