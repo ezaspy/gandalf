@@ -48,7 +48,7 @@
 
 ## About The Project
 
-gandalf has been created to help fellow digitial forensicators with the live collection of forensic artefacts from a Windows, Linux and masOS hosts. Depending on the host OS, either gandalf.ps1 or gandalf.py will be required; to ensure compatibility for Windows and \*nix hosts respectively. If acquiring artefacts locally, gandalf should take ~3 minutes, potentially less. For remote acquisitions, gandalf can take ~7 minutes (per host), depending on network speeds and latency of course.
+gandalf has been created to help fellow digitial forensicators with the live collection of forensic artefacts from a Windows, Linux and masOS hosts. Depending on the host OS, either gandalf.ps1 or gandalf.py will be required; to ensure compatibility for Windows and \*nix hosts respectively. gandalf is designed to be faster, but additional features *({-Memory, -CollectFiles}/{-M, -A, -F})* may result is longer acquisitions times, subject to network speeds and latency of course.
 gandalf will collect all commonly utilised forensic artefacts but it will not process them - this is handled by its 'brother' script [elrond](https://github.com/ezaspy/elrond), which converts all of the artefacts to either JSON or CSV and can then stand up an on-the-fly [Splunk](https://www.splunk.com/) or [elastic](https://www.elastic.co/) instance whilst mapping the evidence within those artefacts to the [MITRE ATT&CK® Framework](https://attack.mitre.org/) using [ATT&CK Navigator](https://mitre-attack.github.io/attack-navigator/), if desired.
 <br><br><br>
 
@@ -59,25 +59,40 @@ gandalf will collect all commonly utilised forensic artefacts but it will not pr
 You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. This is true for both Local and Remote acquisitions. On Windows Server 2012+ remoting is enabled by default. You only need to confirm that your firewall rules allow inbound access. However, no Windows client OS has PowerShell remoting enabled by default.<br>
 Additional installations may be required on Linux/macOS hosts for the target hosts to allow inbound SSH connections.<br>
 Please review the [SUPPORT.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) file for instructions on how to leverage and deploy gandalf.<br>
-Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md) file for instructions on how to enable PowerShell remoting.<br><br>
 
 <!-- USAGE EXAMPLES -->
 
 ## Usage
 
+Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md) file for instructions on how to enable PowerShell remoting (for Windows Targets) and SSH remoting (for Linux/macOS hosts).<br><br>
+
 ### Windows
 
-- Populate [hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md#Windows), if required<br>
-- Open 'Windows PowerShell' (not PowerShell Core) with Local Administrator privileges<br>
-  - Tip: CTRL + SHIFT + PowerShell
+- **Open 'Windows PowerShell' (not PowerShell Core) with Local Administrator privileges**<br>
+  - Keyboard shortcut: </kbd>WIN</kbd> + </kbd>X</kbd> + </kbd>A</kbd>
 
-`.\Enter-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <C:\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-CollectFiles]`<br><br>
+`.\Invoke-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <C:\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-CollectFiles]`<br><br>
+
 
 ### Linux/macOS
-- Populate [hosts.list](https://github.com/ezaspy/gandalf/blob/main/gandalf/CONFIG.md#Linux-macOS), if required<br>
-- Open Terminal<br>
+- **Open 'Terminal' as root**<br>
 
-`sudo python3 gandalf.py [-h] <Key/Password/None> <Local/Remote> [-O <output_directory>] [-M] [-A] [-C]`<br><br><br>
+`sudo python3 gandalf.py [-h] <Key/Password/None> <Local/Remote> [-O <output_directory>] [-M] [-A] [-C]`<br><br>
+
+
+### Cross-Platform Acquisition (XPC)
+#### Windows -> Linux/macOS
+- **Open 'Windows PowerShell' (not PowerShell Core) with Local Administrator privileges**<br>
+
+`python3 gandalf.py [-h] <Key/Password/None> <Local/Remote> [-O <output_directory>] [-M] [-A] [-C]`<br><br>
+
+
+#### Linux/macOS -> Windows
+- **Open 'Terminal' as root**<br>
+
+`pwsh`<br>
+`./Invoke-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-CollectFiles]`<br><br><br>
+
 
 <!-- ACKNOWLEDGEMENTS -->
 
@@ -99,6 +114,8 @@ Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/
   - [ASCII Text Generator](https://textkool.com/en/ascii-art-generator?hl=default&vl=default&font=Red%20Phoenix&text=Your%20text%20here%20)
   - [ASCII Art Generator](https://www.ascii-art-generator.org)
   - [ASCII World](http://www.asciiworld.com/-Lord-of-the-Rings-.html)
+- Other
+  - [Powershell on macOS WSMan issue](https://www.oasys.net/fragments/powershell-on-macos-wsman/)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
