@@ -22,7 +22,7 @@ parser.add_argument(
     help="Encrpytion Method - Key (recommended), Password or None",
 )
 parser.add_argument(
-    "AcquisitionMethod",
+    "Acquisition",
     help="Acquisition Method - Local or Remote",
 )
 parser.add_argument(
@@ -60,7 +60,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 encryption_method = args.EncryptionMethod
-acquisition_method = args.AcquisitionMethod
+acquisition = args.Acquisition
 output_dir = args.OutputDirectory
 mem = args.Memory
 access_times = args.AccessTimes
@@ -99,7 +99,7 @@ system_artefacts = {
     "/private/etc/shadow": "",
     "/private/etc/systemd": "",
     "/swapfile": "memory",
-    # "/tmp/": "tmp",
+    "/tmp/": "tmp",
     "/usr/lib/systemd/user/": "services",
     "/var/cache/cups/": "",
     "/var/at/": "cron",
@@ -275,8 +275,10 @@ def main():
             random.choice(quotes)
         )
     )
-    if os.path.exists("C:\\TEMP\\gandalf") and acquisition_method.title() == "Local":
-        print("      gandalf.py is not designed to run Locally on Windows devices.\n       Please use Invoke-Gandalf.ps1 instead.\n\n")
+    if os.path.exists("C:\\TEMP\\gandalf") and acquisition.title() == "Local":
+        print(
+            "      gandalf.py is not designed to run Locally on Windows devices.\n       Please use Invoke-Gandalf.ps1 instead.\n\n"
+        )
         sys.exit()
     else:
         pass
@@ -291,7 +293,7 @@ def main():
         sys.exit()
     else:
         pass
-    if acquisition_method.title() != "Local" and acquisition_method.title() != "Remote":
+    if acquisition.title() != "Local" and acquisition.title() != "Remote":
         print(
             "     Invalid acquisition method - it must be either 'Local' or 'Remote'\n       Please try again.\n\n"
         )
@@ -334,7 +336,7 @@ def main():
         encryption_object = None
     hostlist = []
     hostlist.append(socket.gethostname())
-    if acquisition_method == "Local":
+    if acquisition == "Local":
         configure_acquisition(
             encryption_method,
             system_artefacts,
@@ -347,8 +349,12 @@ def main():
             os.path.join(gandalf_directory, hostlist[0]),
         )
         if memory:
-            shutil.copy2(os.path.join("tools", "memory", "avml-main.zip"), "/tmp/gandalf/")
-            shutil.copy2(os.path.join("tools", "memory", "osxpmem.app.zip"), "/tmp/gandalf/")
+            shutil.copy2(
+                os.path.join("tools", "memory", "avml-main.zip"), "/tmp/gandalf/"
+            )
+            shutil.copy2(
+                os.path.join("tools", "memory", "osxpmem.app.zip"), "/tmp/gandalf/"
+            )
         else:
             pass
         subprocess.Popen(
@@ -384,11 +390,16 @@ def main():
             time.sleep(4)
             input("      Collected? [Yes] ")
             shutil.rmtree("/tmp/gandalf/")
-    else: # Remote
+        os.remove("tools/acquire_artefacts.py")
+    else:  # Remote
         if encryption_object == None:
-            confirm_encryption = input("     You have chosen to use no encryption when archiving the artefacts. This is not recommended.\n      Are you sure you want to proceed? y/N [N] :")
+            confirm_encryption = input(
+                "     You have chosen to use no encryption when archiving the artefacts. This is not recommended.\n      Are you sure you want to proceed? y/N [N] :"
+            )
             if confirm_encryption != "y":
-                print("      Please try again with the 'EncryptionObject' parameter set to 'Key' or 'Password'\n\n")
+                print(
+                    "      Please try again with the 'EncryptionObject' parameter set to 'Key' or 'Password'\n\n"
+                )
                 sys.exit()
             else:
                 pass
@@ -429,12 +440,19 @@ def main():
                 )  # making gandalf directories
                 scp = SCPClient(ssh.get_transport())
                 if memory:  # sending memory dump tools
-                    scp.put(os.path.join("tools", "memory", "avml-main.zip"), "/tmp/gandalf/")
-                    scp.put(os.path.join("tools", "memory", "osxpmem.app.zip"), "/tmp/gandalf/")
+                    scp.put(
+                        os.path.join("tools", "memory", "avml-main.zip"),
+                        "/tmp/gandalf/",
+                    )
+                    scp.put(
+                        os.path.join("tools", "memory", "osxpmem.app.zip"),
+                        "/tmp/gandalf/",
+                    )
                 else:
                     pass
                 scp.put(
-                    os.path.join("tools", "acquire_artefacts.py"), "/tmp/gandalf/acquire_artefacts.py"
+                    os.path.join("tools", "acquire_artefacts.py"),
+                    "/tmp/gandalf/acquire_artefacts.py",
                 )  # sending gandalf acquisition script
                 acquire_in, acquire_out, acquire_err = ssh.exec_command(
                     "python3 /tmp/gandalf/acquire_artefacts.py"
@@ -484,7 +502,11 @@ def main():
                 )  # deleting gandalf
                 ssh.close()
             except paramiko.ssh_exception.NoValidConnectionsError:
-                print("      \033[1;31mSSH connection to '{}' could not be established.\033[1;m\n".format(host))
+                print(
+                    "      \033[1;31mSSH connection to '{}' could not be established.\033[1;m\n".format(
+                        host
+                    )
+                )
             print()
     endtime = time.time()
     diffmins = "{} minutes".format(str(round(((endtime - starttime) - 4) / 60)))
