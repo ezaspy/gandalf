@@ -163,7 +163,22 @@ def acquire_memory(mem_tool, command_params, gandalf_host):
     subprocess.Popen(
         command_params, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     ).communicate()
-    if (mem_tool == "avml-main" and os.path.exists("/tmp/gandalf/gandalf/acquisitions/{}/artefacts/{}.mem".format(gandalf_host, gandalf_host))) or mem_tool == "osxpmem.app" and os.path.exists("/tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.aff4".format(gandalf_host)):
+    if (
+        (
+            mem_tool == "avml-main"
+            and os.path.exists(
+                "/tmp/gandalf/gandalf/acquisitions/{}/artefacts/{}.mem".format(
+                    gandalf_host, gandalf_host
+                )
+            )
+        )
+        or mem_tool == "osxpmem.app"
+        and os.path.exists(
+            "/tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.aff4".format(
+                gandalf_host
+            )
+        )
+    ):
         print(
             "       \033[1;32mAcquired memory dump from '{}'\033[1;m".format(
                 gandalf_host,
@@ -341,25 +356,41 @@ def acquire_artefacts(
         gandalf_audit.write("datetime,hostname,artefact,collected\n")
     gandalf_artefact_destination = os.path.join(gandalf_host, "artefacts")
     os.mkdir(gandalf_artefact_destination)
+    os_platform = str(platform.uname())
     if memory != "None":
         print(
             "      Acquiring memory dump from '{}'".format(
                 gandalf_host.split("/")[-1],
             )
         )
-        os_platform = str(platform.uname())
-        if "GNU/Linux" in os_platform and "Linux" in os_platform and "Darwin" not in os_platform:
-            command_params = ["sudo chmod +x avml && sudo ./avml /tmp/gandalf/gandalf/acquisitions/{}/artefacts/{}.mem".format(gandalf_host.split("/")[-1], gandalf_host.split("/")[-1])]
+        if (
+            "GNU/Linux" in os_platform
+            and "Linux" in os_platform
+            and "Darwin" not in os_platform
+        ):
+            command_params = [
+                "sudo chmod +x avml && sudo ./avml /tmp/gandalf/gandalf/acquisitions/{}/artefacts/{}.mem".format(
+                    gandalf_host.split("/")[-1], gandalf_host.split("/")[-1]
+                )
+            ]
             acquire_memory("avml-main", command_params, gandalf_host.split("/")[-1])
         elif (
             "Darwin" in os_platform
             and "GNU/Linux" not in os_platform
             and "Linux" not in os_platform
         ):
-            command_params = ["sudo chown -R root:wheel osxpmem.app/ && sudo chmod +x osxpmem.app/osxpmem && sudo osxpmem.app/osxpmem -o /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.aff4 && sudo osxpmem.app/osxpmem -e /dev/pmem -o /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.raw /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.aff4".format(gandalf_host.split("/")[-1], gandalf_host.split("/")[-1], gandalf_host.split("/")[-1])]
+            command_params = [
+                "sudo chown -R root:wheel osxpmem.app/ && sudo chmod +x osxpmem.app/osxpmem && sudo osxpmem.app/osxpmem -o /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.aff4 && sudo osxpmem.app/osxpmem -e /dev/pmem -o /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.raw /tmp/gandalf/gandalf/acquisitions/{}/artefacts/mem.aff4".format(
+                    gandalf_host.split("/")[-1],
+                    gandalf_host.split("/")[-1],
+                    gandalf_host.split("/")[-1],
+                )
+            ]
             acquire_memory("osxpmem.app", command_params, gandalf_host.split("/")[-1])
         else:
-            print("      \033[1;31mUnable to acquire memory; platform is neither Linux or macOS.\033[1;m")
+            print(
+                "      \033[1;31mUnable to acquire memory; platform is neither Linux or macOS.\033[1;m"
+            )
         print()
     else:
         pass
@@ -890,55 +921,38 @@ def acquire_artefacts(
                 gandalf_host.split("/")[-1]
             )
         )
-        for access_files_root, _, access_files_files in os.walk("/"):
-            for access_files_file in access_files_files:
-                accessed_file = os.path.join(access_files_root, access_files_file)
-                if (
-                    os.path.exists(accessed_file)
-                    and os.path.isfile(accessed_file)
-                    and "/tmp/gandalf/gandalf/" not in accessed_file
-                ):
-                    if not os.path.exists(
-                        "/tmp/gandalf/gandalf/acquisitions/{}/LastAccessTimes.csv".format(
-                            gandalf_host.split("/")[-1]
-                        )
-                    ):
-                        with open(
-                            "/tmp/gandalf/gandalf/acquisitions/{}/LastAccessTimes.csv".format(
-                                gandalf_host.split("/")[-1]
-                            ),
-                            "w",
-                        ) as files_accessed:
-                            files_accessed.write("File,Path,LastAccessTime\n")
-                    else:
-                        pass
-                    with open(
-                        "/tmp/gandalf/gandalf/acquisitions/{}/LastAccessTimes.csv".format(
-                            gandalf_host.split("/")[-1]
-                        ),
-                        "a",
-                    ) as files_accessed:
-                        try:
-                            iinfo = os.stat(accessed_file)
-                            isize = iinfo.st_size
-                        except:
-                            pass
-                        if isize > 0:
-                            files_accessed.write(
-                                "{},{},{}\n".format(
-                                    access_files_file,
-                                    access_files_root,
-                                    str(
-                                        datetime.fromtimestamp(
-                                            os.path.getatime(accessed_file)
-                                        )
-                                    ),
-                                )
-                            )
-                        else:
-                            pass
-                else:
-                    pass
+        if (
+            "GNU/Linux" in os_platform
+            and "Linux" in os_platform
+            and "Darwin" not in os_platform
+        ):  # linux
+            subprocess.Popen(
+                [
+                    "sudo ls -abiluQR --author --full-time / > /tmp/gandalf/gandalf/acquisitions/{}/LastAccessTimes.txt 2> /dev/null".format(
+                        gandalf_host.split("/")[-1]
+                    )
+                ],
+                shell=True,
+            ).communicate()
+            print("       \033[1;32mObtained files' LastAccess times\033[1;m")
+        elif (
+            "Darwin" in os_platform
+            and "GNU/Linux" not in os_platform
+            and "Linux" not in os_platform
+        ):  # macOS
+            subprocess.Popen(
+                [
+                    "sudo ls -@aBFgilRu / > /tmp/gandalf/gandalf/acquisitions/{}/LastAccessTimes.txt 2> /dev/null".format(
+                        gandalf_host.split("/")[-1]
+                    )
+                ],
+                shell=True,
+            ).communicate()
+            print("       \033[1;32mObtained files' LastAccess times\033[1;m")
+        else:
+            print(
+                "      \033[1;31mUnable to acquire files' LastAccess times; platform is neither Linux or macOS.\033[1;m"
+            )
     else:
         pass
     if collect_files != "None":
