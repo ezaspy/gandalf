@@ -84,6 +84,20 @@ Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/
 `./Invoke-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-CollectFiles]`
 <br><br><br>
 
+## Artefacts Aquired
+
+
+### Windows
+
+
+### Linux
+
+
+### macOS
+
+
+<br><br><br>
+
 ## Acknowledgements
 
 - [Jason Fossen](https://blueteampowershell.com/)<br>
