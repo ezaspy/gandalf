@@ -302,9 +302,9 @@ else {
 }
 
 $ArtefactAquisitionPath = [IO.Path]::Combine($GandalfRoot, "gandalf", "tools", "Invoke-ArtefactAcquisition.ps1")
-$RemnantFiles = {"C:\TEMP\gandalf\gandalf\tools\RawCopy.exe", "C:\TEMP\gandalf\gandalf\tools\RawCopy64.exe", "C:\TEMP\gandalf\gandalf\tools\sleuthkit-4.12.1-win32.zip", "C:\TEMP\gandalf\gandalf\tools\icat", $ArtefactAquisitionPath}
+$RemnantFiles = @("C:\TEMP\gandalf\gandalf\tools\RawCopy.exe", "C:\TEMP\gandalf\gandalf\tools\RawCopy64.exe", "C:\TEMP\gandalf\gandalf\tools\sleuthkit-4.12.1-win32", "C:\TEMP\gandalf\gandalf\tools\sleuthkit-4.12.1-win32.zip", "C:\TEMP\gandalf\gandalf\tools\icat", "C:\TEMP\gandalf\gandalf\tools\tsk", $ArtefactAquisitionPath)
 ForEach ($RemnantFile in $RemnantFiles) {
-    if (Test-Path -LiteralPath RemnantFile) {
+    if (Test-Path -LiteralPath $RemnantFile) {
         Remove-Item $RemnantFile -Recurse -Force
     }
 }
@@ -380,8 +380,10 @@ else {
     }
 }
 
-if (Test-Path -LiteralPath $ArtefactAquisitionPath) {
-    Remove-Item $ArtefactAquisitionPath
+ForEach ($RemnantFile in $RemnantFiles) {
+    if (Test-Path -LiteralPath $RemnantFile) {
+        Remove-Item $RemnantFile -Recurse -Force
+    }
 }
 
 $DateTime = "{0}" -f (Get-Date)
