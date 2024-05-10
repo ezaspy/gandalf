@@ -41,7 +41,7 @@ gandalf is responsible for the acquisition-side of digital forensics, but what a
 
 ## Configuration
 
-To collect privileged disk arterfacts, namely the `$MFT`, you will need to download the [`disk_tools.zip.enc`](https://drive.google.com/file/d/1LwmTMcJm8ggIvQnbSLT5-0CRG8NBBBdR/view?usp=share_link) archive (password is `infected`) and place the enclosed archive (`disk_tools.zip`) into `gandalf\gandalf\tools\` before deploying and invoking gandalf for artefact aquisition.<br>
+To collect privileged disk arterfacts, namely the `$MFT`, you will need to download the [`disk_tools.zip.enc`](https://drive.google.com/file/d/1cXgeQNygkuV4aaTkNFi-3QTQ4cKK5PiU/view?usp=share_link) archive (password is `infected`) and place the enclosed archive (`disk_tools.zip`) into `gandalf\gandalf\tools\` before deploying and invoking gandalf for artefact aquisition.<br>
 
 ### Prerequisites
 
