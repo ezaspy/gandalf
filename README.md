@@ -1,4 +1,3 @@
-<!-- PROJECT LOGO -->
 <p align="center">
   <a href="https://github.com/ezaspy/gandalf">
     <img src="gandalf/images/logo_trans_big.png" alt="Logo" width="400" height="400">
@@ -30,8 +29,6 @@
   </p>
 </p>
 
-<!-- TABLE OF CONTENTS -->
-
 ## Table of Contents
 
 - [About the Project](#about-the-project)
@@ -44,23 +41,19 @@
 
 <br><br>
 
-<!-- ABOUT THE PROJECT -->
-
 ## About The Project
 
 gandalf has been created to help fellow digitial forensicators with the live collection of forensic artefacts from a Windows, Linux and masOS hosts. Depending on the host OS, either gandalf.ps1 or gandalf.py will be required; to ensure compatibility for Windows and \*nix hosts respectively. gandalf is designed to be faster, but additional features *({-Memory, -CollectFiles}/{-M, -A, -F})* may result is longer acquisitions times, subject to network speeds and latency of course.
 gandalf will collect all commonly utilised forensic artefacts but it will not process them - this is handled by its 'brother' script [elrond](https://github.com/ezaspy/elrond), which converts all of the artefacts to either JSON or CSV and can then stand up an on-the-fly [Splunk](https://www.splunk.com/) or [elastic](https://www.elastic.co/) instance whilst mapping the evidence within those artefacts to the [MITRE ATT&CK® Framework](https://attack.mitre.org/) using [ATT&CK Navigator](https://mitre-attack.github.io/attack-navigator/), if desired.
 <br><br><br>
 
-<!-- Prerequisites -->
-
 ## Prerequisites
 
+To collect privileged disk arterfacts, namely the $MFT, you will need to download the [`disk_tools.zip`](https://drive.google.com/file/d/1LwmTMcJm8ggIvQnbSLT5-0CRG8NBBBdR/view?usp=share_link) archive (password is `infected`) and place into `gandalf\gandalf\tools\` before deploying and invoking gandalf for artefact aquisition.<br><br>
 You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. This is true for both Local and Remote acquisitions. On Windows Server 2012+ remoting is enabled by default. You only need to confirm that your firewall rules allow inbound access. However, no Windows client OS has PowerShell remoting enabled by default.<br>
 Additional installations may be required on Linux/macOS hosts for the target hosts to allow inbound SSH connections.<br>
-Please review the [SUPPORT.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) file for instructions on how to leverage and deploy gandalf.<br>
-
-<!-- USAGE EXAMPLES -->
+Please review the [SUPPORT.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) file for instructions on how to leverage and deploy gandalf.
+<br><br><br>
 
 ## Usage
 
@@ -73,12 +66,10 @@ Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/
 
 `.\Invoke-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <C:\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-CollectFiles]`<br><br>
 
-
 ### Linux/macOS
 - **Open 'Terminal' as root**<br>
 
 `sudo python3 gandalf.py [-h] <Key/Password/None> <Local/Remote> [-O <output_directory>] [-M] [-A] [-C]`<br><br>
-
 
 ### Cross-Platform Acquisition (XPC)
 #### Windows -> Linux/macOS
@@ -86,15 +77,12 @@ Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/
 
 `python3 gandalf.py [-h] <Key/Password/None> <Local/Remote> [-O <output_directory>] [-M] [-A] [-C]`<br><br>
 
-
 #### Linux/macOS -> Windows
 - **Open 'Terminal' as root**<br>
 
 `pwsh`<br>
-`./Invoke-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-CollectFiles]`<br><br><br>
-
-
-<!-- ACKNOWLEDGEMENTS -->
+`./Invoke-Gandalf.ps1 [-EncryptionObject <Key/Password/None>] [-Acquisition <Local/Remote>] [-OutputDirectory <\Path\To\Output\Location>] [-Memory] [-ShowProgress] [-CollectFiles]`
+<br><br><br>
 
 ## Acknowledgements
 
