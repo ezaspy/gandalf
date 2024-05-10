@@ -288,12 +288,14 @@ function Invoke-RemoteArchiveCollection {
     Write-Progress -Activity "_" -Completed
 }
 
+# Gathering Date/Time information
 $DateTime = "{0}" -f (Get-Date)
 $StartTime = Get-Date -Date $DateTime -UFormat %s
 $StartTime = [convert]::ToInt32($StartTime)
 $global:ProgressPreference = "Continue"
 $Environment = Get-ChildItem -Path Env:
 
+# Checking if ps1 file is running on Windows or *nix
 if (($Environment -like "*XPC_*" -Or $Environment -like "*com.apple.Terminal*" -Or $Environment -like "*/bin/zsh*" -Or $Environment -like "*com.apple.launchd.*") -Or ($Environment -like "*XDG_*" -Or $Environment -like "*/Terminal/*" -Or $Environment -like "*/bin/bash*" -Or $Environment -like "*/home/*")) {
     $GandalfRoot = [IO.Path]::Combine("/tmp", "gandalf")
 }
@@ -301,6 +303,18 @@ else {
     $GandalfRoot = [IO.Path]::Combine("C:\", "TEMP", "gandalf")
 }
 
+# Checking existance of disk_tools.zip
+if (Test-Path -LiteralPath "C:\TEMP\gandalf\gandalf\tools\disk_tools.zip") {
+    Write-Host "      WARNING: 'C:\TEMP\gandalf\gandalf\tools\disk_tools.zip' does not exist." -Foreground Yellow; Write-Host "       As a result, some disk artefacts (inc. the `$MFT will not be collected." -Foreground White
+    $ContinueWithoutDiskTools = Read-Host "      Do you wish to continue? y/N [N] "
+    if ($ContinueWithoutDiskTools -ne "y") {
+        Write-Host "`r      Read the **Configuration** section in the README.md before trying again.`n`n"
+        Exit
+    }
+
+}
+
+# Removing files which if exist during second attempt will cause failures
 $ArtefactAquisitionPath = [IO.Path]::Combine($GandalfRoot, "gandalf", "tools", "Invoke-ArtefactAcquisition.ps1")
 $RemnantFiles = @("C:\TEMP\gandalf\gandalf\tools\RawCopy.exe", "C:\TEMP\gandalf\gandalf\tools\RawCopy64.exe", "C:\TEMP\gandalf\gandalf\tools\sleuthkit-4.12.1-win32", "C:\TEMP\gandalf\gandalf\tools\sleuthkit-4.12.1-win32.zip", "C:\TEMP\gandalf\gandalf\tools\icat", "C:\TEMP\gandalf\gandalf\tools\tsk", $ArtefactAquisitionPath)
 ForEach ($RemnantFile in $RemnantFiles) {
@@ -316,10 +330,13 @@ if (-Not ($NoPrompt)) {
     Write-Host `r
 }
 
+# Exiting if running .ps1 file locally on *nix
 if ($GandalfRoot -eq "/tmp/gandalf" -And $Acquisition -eq "Local") {
     Write-Host "      Invoke-Gandalf.ps1 is not designed to run Locally on Linux/macOS devices."; Write-Host "       Please use gandalf.py instead.`n`n"
     Exit
 }
+
+# Setting default parameters
 $EncryptionObject, $Acquisition, $OutputDirectory = Set-Defaults $EncryptionObject $Acquisition $OutputDirectory $NoPrompt
 
 if ($EncryptionObject -eq "Key") {
@@ -380,18 +397,21 @@ else {
     }
 }
 
+# Removing files only needed during acquisition
 ForEach ($RemnantFile in $RemnantFiles) {
     if (Test-Path -LiteralPath $RemnantFile) {
         Remove-Item $RemnantFile -Recurse -Force
     }
 }
 
+# Gathering Date/Time information
 $DateTime = "{0}" -f (Get-Date)
 $EndTime = Get-Date -Date $DateTime -UFormat %s
 $EndTime = [convert]::ToInt32($EndTime)
 $TimeDifference = $EndTime - $StartTime
 $ElapsedTime = Format-Time $TimeDifference
 
+# Finishing
 Write-Host "`n`n  -> Finished. Total elapsed time: $ElapsedTime`n    ----------------------------------------" -Foreground Gray
 Write-Host "      gandalf completed for:"
 
