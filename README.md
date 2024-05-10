@@ -49,7 +49,7 @@ gandalf will collect all commonly utilised forensic artefacts but it will not pr
 
 ## Prerequisites
 
-To collect privileged disk arterfacts, namely the $MFT, you will need to download the [`disk_tools.zip`](https://drive.google.com/file/d/1LwmTMcJm8ggIvQnbSLT5-0CRG8NBBBdR/view?usp=share_link) archive (password is `infected`) and place into `gandalf\gandalf\tools\` before deploying and invoking gandalf for artefact aquisition.<br><br>
+To collect privileged disk arterfacts, namely the `$MFT`, you will need to download the [`disk_tools.zip.enc`](https://drive.google.com/file/d/1LwmTMcJm8ggIvQnbSLT5-0CRG8NBBBdR/view?usp=share_link) archive (password is `infected`) and place the enclosed archive (`disk_tools.zip`) into `gandalf\gandalf\tools\` before deploying and invoking gandalf for artefact aquisition.<br><br>
 You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. This is true for both Local and Remote acquisitions. On Windows Server 2012+ remoting is enabled by default. You only need to confirm that your firewall rules allow inbound access. However, no Windows client OS has PowerShell remoting enabled by default.<br>
 Additional installations may be required on Linux/macOS hosts for the target hosts to allow inbound SSH connections.<br>
 Please review the [SUPPORT.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) file for instructions on how to leverage and deploy gandalf.
@@ -118,8 +118,5 @@ Please read the [CONFIG.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/
   - [ASCII World](http://www.asciiworld.com/-Lord-of-the-Rings-.html)
 - Other
   - [Powershell on macOS WSMan issue](https://www.oasys.net/fragments/powershell-on-macos-wsman/)
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
 [gandalf-screenshot]: images/screenshot.png
