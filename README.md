@@ -5,26 +5,13 @@
   <p align="center">
     Forensics artefact acquisition scripts to be used in conjunction with elrond.
     <br><br>
-    <a href="https://mit-license.org">
-      <img src="https://img.shields.io/github/license/ezaspy/gandalf" alt="License: MIT">
-    </a>
-    <a href="https://github.com/ezaspy/gandalf/issues">
-      <img src="https://img.shields.io/github/issues/ezaspy/gandalf" alt="Issues">
-    </a>
-    <a href="https://github.com/ezaspy/gandalf/network/members">
-      <img src="https://img.shields.io/github/forks/ezaspy/gandalf" alt="Forks">
-    <a href="https://github.com/ezaspy/gandalf/stargazers">
-      <img src="https://img.shields.io/github/stars/ezaspy/gandalf" alt="Stars">
-    </a>
-    <a>
-      <img src="https://img.shields.io/badge/subject-DFIR-red" alt="Subject">
-    </a>
-    </a>
-      <img src="https://img.shields.io/github/last-commit/ezaspy/gandalf" alt="Last Commit">
-    </a>
-    <a href="https://github.com/psf/black">
-      <img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg">
-    </a>
+    <a href="https://mit-license.org"><img src="https://img.shields.io/github/license/ezaspy/gandalf" alt="License: MIT"></a>
+    <a href="https://github.com/ezaspy/gandalf/issues"><img src="https://img.shields.io/github/issues/ezaspy/gandalf" alt="Issues"></a>
+    <a href="https://github.com/ezaspy/gandalf/network/members"><img src="https://img.shields.io/github/forks/ezaspy/gandalf" alt="Forks"></a>
+    <a href="https://github.com/ezaspy/gandalf/stargazers"><img src="https://img.shields.io/github/stars/ezaspy/gandalf" alt="Stars"></a>
+    <a><img src="https://img.shields.io/badge/subject-DFIR-red" alt="Subject"></a>
+    <a><img src="https://img.shields.io/github/last-commit/ezaspy/gandalf" alt="Last Commit"></a>
+    <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
     <br><br>
   </p>
 </p>
