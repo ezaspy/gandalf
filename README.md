@@ -1,7 +1,5 @@
 <p align="center">
-  <a href="https://github.com/ezaspy/gandalf">
-    <img src="gandalf/images/logo_trans_big.png" alt="Logo" width="400" height="400">
-  </a>
+  <a href="https://github.com/ezaspy/gandalf"><img src="gandalf/images/logo_trans_big.png" alt="Logo" width="400" height="400"></a>
   <p align="center">
     Forensics artefact acquisition scripts to be used in conjunction with elrond.
     <br><br>
