@@ -1,27 +1,46 @@
 function Add-LogEntry { 
     Param ($ShowProgress, $OutputDirectory, $Hostname, $Artefact, $Message)
+    
     $DateTime = Get-Date -Format yyyy-MM-ddTHH:mm:ss.fffffffZ
     "$DateTime, $Hostname, $Artefact, collected" | Add-Content $OutputDirectory\$Hostname\log.audit
+    
     if ($ShowProgress -And $ShowProgress -ne "False") { 
         Write-Host "   -> $DateTime ->"$Message
     }
 }
 
 function Get-Metadata {
-    #$DateTime = "{0:o}" -f (Get-Date)
+    #$DateTime = "{0}" -f (Get-Date)
     $FileHash = Get-FileHash -Algorithm SHA256 $Artefact
     "$Hostname,$FileHash`n" | Set-Content $OutputDirectory\$Hostname\log.audit
 }
 
 function New-Directories {
     Param ($OutputDirectory, $Hostname)
+    
     $DriveLetter = $env:SystemDrive
-    New-Item -Path $OutputDirectory\$Hostname -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\wmi -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\memory -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\registry -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\evt -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\prefetch -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\jumplists -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\edge -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\chrome -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\firefox -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\clipboard -ItemType Directory > $null
+    
+    New-Item -Path $OutputDirectory\$Hostname -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\wmi -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\memory -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\registry -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\evt -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\prefetch -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\jumplists -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\edge -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\chrome -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\browsers\firefox -ItemType Directory > $null
+    New-Item -Path $OutputDirectory\$Hostname\artefacts\artefacts\raw\clipboard -ItemType Directory > $null
+    
     return $DriveLetter
 }
 
 function Get-Modules {
     Param ($EncryptionObject)
+    
     if ($EncryptionObject -eq "Key" -Or $EncryptionObject -eq "Password") {
         if (-Not (Get-Module -ListAvailable -Name 7Zip4PowerShell)) {
             Write-Host "`n     Attempting to install additional modules..."
@@ -41,15 +60,20 @@ function Get-Modules {
 
 function Get-Platform {
     Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
+    
     if ((Get-ChildItem "$DriveLetter\").Name | Select-String -Pattern "MSOCache") {
         $Platform = "Windows7"
     }
     else {
         $Platform = "Windows10"
     }
+    
     "$Hostname::$Platform`n" | Set-Content $OutputDirectory\$Hostname\artefacts\artefacts\host.info
+    
     Write-Host "      Identified '$Hostname' as '$Platform'" -ForegroundColor White
+    
     $Message = "identified '$Hostname' as $Platform"
+    
     Add-LogEntry $ShowProgress $OutputDirectory $Hostname $Platform $Message
 }
 
@@ -59,12 +83,15 @@ function Get-Artefacts {
         Param ($ShowProgress, $Memory, $OutputDirectory, $Hostname)
         function Get-Memory { 
             Param ($ShowProgress, $OutputDirectory, $Hostname)
+
             $global:ProgressPreference = "SilentlyContinue"
             $Architecture = Get-ComputerInfo | Select-Object OsArchitecture
             $Architecture = Out-String -InputObject $Architecture
             $Architecture = $Architecture -Replace '[\S\s]+(\d{2})-bit[\S\s]+', '$1'
+
             $global:ProgressPreference = "Continue"
             Write-Progress "Acquiring raw memory dump from '$Hostname'..."
+
             $global:ProgressPreference = "SilentlyContinue"
             try { 
                 Write-Progress "Acquiring raw memory dump from '$Hostname'..."
@@ -87,6 +114,7 @@ function Get-Artefacts {
         }
         function Get-SystemInfo { 
             Param ($ShowProgress, $OutputDirectory, $Hostname)
+
             try { 
                 Write-Progress "Acquiring system information from '$Hostname'..."
                 $global:ProgressPreference = "SilentlyContinue"
@@ -102,6 +130,7 @@ function Get-Artefacts {
         }
         function Get-Processes { 
             Param ($ShowProgress, $OutputDirectory, $Hostname)
+
             try { 
                 Write-Progress "Acquiring process information from '$Hostname'..."
                 Get-CimInstance -ClassName Win32_Process | Select-Object ProcessId, Name, HandleCount | Export-Csv -Path $OutputDirectory\$Hostname\artefacts\artefacts\processes.csv -NoTypeInformation
@@ -116,6 +145,7 @@ function Get-Artefacts {
         }
         function Get-Drivers { 
             Param ($ShowProgress, $OutputDirectory, $Hostname)
+
             try { 
                 Write-Progress "Acquiring driver information from '$Hostname'..."
                 Get-CimInstance -ClassName Win32_SystemDriver | Select-Object DisplayName, Name, State, Status, Started | Export-Csv -Path $OutputDirectory\$Hostname\artefacts\artefacts\drivers.csv -NoTypeInformation
@@ -130,6 +160,7 @@ function Get-Artefacts {
         }
         function Get-Services { 
             Param ($ShowProgress, $OutputDirectory, $Hostname)
+
             try { 
                 Write-Progress "Acquiring service information from '$Hostname'..."
                 Get-WmiObject Win32_Service | Select-Object ProcessId, Name, State, Status, StartMode, ExitCode | Export-Csv $OutputDirectory\$Hostname\artefacts\artefacts\services.csv -NoTypeInformation
@@ -144,6 +175,7 @@ function Get-Artefacts {
         }
         function Get-Network { 
             Param ($ShowProgress, $OutputDirectory, $Hostname)
+
             try { 
                 Write-Progress "Acquiring network information from '$Hostname'..."
                 Get-NetTCPConnection | Select-Object CreationTime, State, LocalAddress, LocalPort, RemoteAddress, RemotePort, OwningProcess, Name, InstallDate, EnabledDefault, AppliedSetting, Status | Export-Csv -Path $OutputDirectory\$Hostname\artefacts\artefacts\network.csv -NoTypeInformation
@@ -158,6 +190,7 @@ function Get-Artefacts {
         }
         function Get-Tasks { 
             Param ($ShowProgress, $OutputDirectory, $Hostname)
+
             try { 
                 Write-Progress "Acquiring scheduled task information from '$Hostname'..."
                 $schtasks = 
@@ -174,9 +207,11 @@ function Get-Artefacts {
                 Write-Host "      FAILURE: scheduled task information could not be collected; another process may be using the same resources." -ForegroundColor Red
             }
         }
+        
         if ($Memory -And $Memory -ne "False") { 
             Get-Memory $ShowProgress $OutputDirectory $Hostname
         }
+        
         Get-SystemInfo $ShowProgress $OutputDirectory $Hostname
         Get-Processes $ShowProgress $OutputDirectory $Hostname
         Get-Drivers $ShowProgress $OutputDirectory $Hostname
@@ -186,34 +221,44 @@ function Get-Artefacts {
     }
     function Get-Core { 
         Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
+        
         $global:ProgressPreference = "SilentlyContinue"
         Expand-Archive -LiteralPath "C:\TEMP\gandalf\gandalf\tools\disk_tools.zip" -DestinationPath "C:\TEMP\gandalf\gandalf\tools"
+
         $global:ProgressPreference = "Continue"
         Write-Host ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
-        Exit
+
         # Acquiring MFT
         try { 
             Write-Progress "Acquiring `$MFT from '$Hostname'..."
+
             $global:ProgressPreference = "SilentlyContinue"
-            Expand-Archive -LiteralPath "C:\TEMP\gandalf\gandalf\tools\sleuthkit-4.12.1-win32.zip" -DestinationPath "C:\TEMP\gandalf\gandalf\tools\tsk" # https://www.sleuthkit.org/sleuthkit/download.php
-            $icat = { C:\TEMP\gandalf\gandalf\tools\tsk\bin\icat.exe \\.\c: 0 > $OutputDirectory\$Hostname\artefacts\artefacts\raw\`$MFT }
+            Expand-Archive -LiteralPath "C:\TEMP\gandalf\gandalf\tools\sleuthkit-4.12.1-win32.zip" -DestinationPath "C:\TEMP\gandalf\gandalf\tools\icat" # https://www.sleuthkit.org/sleuthkit/download.php
+
+            $icat = { C:\TEMP\gandalf\gandalf\tools\icat\bin\icat.exe \\.\c: 0 > $OutputDirectory\$Hostname\artefacts\artefacts\raw\`$MFT }
             Invoke-Command -ScriptBlock $icat
-            Remove-Item "C:\TEMP\gandalf\gandalf\tools\tsk" -Recurse -Force
+            Remove-Item "C:\TEMP\gandalf\gandalf\tools\icat" -Recurse -Force
+
             $global:ProgressPreference = "Continue"
             Write-Host "       Acquired `$MFT from '$Hostname'" -ForegroundColor Green
             $Message = "acquired '`$MFT' from '$Hostname'"
+
             Add-LogEntry $ShowProgress $OutputDirectory $Hostname $ArtefactFile $Message
         }
         catch { 
             Write-Host "      FAILURE: '`$MFT' could not be collected." -ForegroundColor Red
         }
+
         Write-Progress -Activity "_" -Completed
+
         $global:ProgressPreference = "SilentlyContinue"
         $Architecture = Get-ComputerInfo | Select-Object OsArchitecture
         $Architecture = Out-String -InputObject $Architecture
         $Architecture = $Architecture -Replace '[\S\s]+(\d{2})-bit[\S\s]+', '$1'
-        $global:ProgressPreference = "Continue"
+
         # Acquiring UserAccessLogs
+        $global:ProgressPreference = "Continue"
+
         if (Test-Path -LiteralPath "C:\Windows\System32\LogFiles\Sum") {
             try { 
                 Write-Progress "Acquiring User Access Logs from '$Hostname'..."
@@ -235,6 +280,7 @@ function Get-Artefacts {
             }
             Write-Progress -Activity "_" -Completed
         }
+
         $global:ProgressPreference = "Continue"
         $Artefacts = @("hiberfil.sys", "pagefile.sys", "Windows\AppCompat\Programs\Amcache.hve", "Windows\INF\setupapi.dev.log", "Windows\System32\sru\SRUDB.dat")
         ForEach ($Artefact in $Artefacts) { 
@@ -266,8 +312,9 @@ function Get-Artefacts {
     }
     function Get-Wmi { 
         Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
-        $Wmis = @("$DriveLetter\Windows\System32\wbem\Repository\")
+
         Write-Progress "Acquiring WMI evidence from '$Hostname'..."
+        $Wmis = @("$DriveLetter\Windows\System32\wbem\Repository\")
         ForEach ($Wmi in Get-ChildItem -Path $Wmis -ErrorAction SilentlyContinue -ErrorVariable PermissionDenied) { 
             if ($Wmi.FullName.Endswith("OBJECTS.DATA") -Or $Wmi.FullName.Endswith("INDEX.BTR") -Or $Wmi.FullName.Endswith(".MAP")) { 
                 try { 
@@ -280,6 +327,7 @@ function Get-Artefacts {
                 }
             }
         }
+
         $Wmis = @("$DriveLetter\Windows\System32\wbem\AutoRecover\")
         ForEach ($Wmi in Get-ChildItem -Path $Wmis -ErrorAction SilentlyContinue -ErrorVariable PermissionDenied) { 
             if ($Wmi.FullName.Endswith(".MOF") -Or $Wmi.FullName.Endswith(".mof")) { 
@@ -292,11 +340,14 @@ function Get-Artefacts {
                 }
             }
         }
+
         Write-Host "       Acquired WMI evidence from '$Hostname'" -ForegroundColor Green
     }
     function Get-Registry { 
         Param ($ShowProgress, $OutputDirectory, $Hostname)
+
         $Hives = @("SAM", "SECURITY", "SOFTWARE", "SYSTEM")
+
         try { 
             Write-Progress "Acquiring registry hives from '$Hostname'..."
             ForEach ($Hive in $Hives) { 
@@ -343,7 +394,9 @@ function Get-Artefacts {
     }
     function Get-Winevt { 
         Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
+
         $Evts = @("$DriveLetter\Windows\System32\Winevt\Logs\")
+
         try { 
             Write-Progress "Acquiring windows event logs from '$Hostname'..."
             ForEach ($Evt in Get-ChildItem -Path $Evts -ErrorAction SilentlyContinue -ErrorVariable PermissionDenied) { 
@@ -366,7 +419,9 @@ function Get-Artefacts {
     }
     function Get-Prefetch { 
         Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
+
         $Prefetch = @("$DriveLetter\Windows\Prefetch\")
+
         try { 
             Write-Progress "Acquiring prefetch files from '$Hostname'..."
             ForEach ($Pf in Get-ChildItem -Path $Prefetch -ErrorAction SilentlyContinue -ErrorVariable PermissionDenied) { 
@@ -506,14 +561,16 @@ function Get-Artefacts {
                 Write-Host "       Acquired clipboard evidence for '$UserClipboard' from '$Hostname'" -ForegroundColor Green
             }
         }
+
         $UserDirs = @("$DriveLetter\Users\")
+
         Get-Jumplists $ShowProgress $OutputDirectory $Hostname $UserDirs
         Get-Browsers $ShowProgress $OutputDirectory $Hostname $UserDirs
         Get-Clipboard $ShowProgress $OutputDirectory $Hostname $UserDirs
     }
+
     Get-Volatile $ShowProgress $Memory $OutputDirectory $Hostname
     Get-Core $ShowProgress $DriveLetter $OutputDirectory $Hostname
-    Exit
     Get-Wmi $ShowProgress $DriveLetter $OutputDirectory $Hostname
     Get-Registry $ShowProgress $OutputDirectory $Hostname
     Get-Winevt $ShowProgress $DriveLetter $OutputDirectory $Hostname
@@ -524,6 +581,7 @@ function Get-Artefacts {
 
 function Get-Files {
     Param ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
+
     $Filelist = Get-Content "C:\TEMP\gandalf\gandalf\lists\files.list"
     ForEach ($Filename in $Filelist) {
         if (-Not ($Filename.Startswith("#"))) {
@@ -556,6 +614,7 @@ function Get-Files {
             Write-Progress -Activity "_" -Completed
         }
     }
+
     $FileCount = (Get-ChildItem $OutputDirectory\$Hostname\artefacts\files\$FileDirectory | Measure-Object).Count
     if ($FileCount -eq 0) {
         Write-Host "       No files collected for '$Hostname'"
@@ -566,9 +625,11 @@ function Get-Files {
 
 function New-Archive {
     Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Hostname, $Message, $ArchiveObject)
+
     Write-Host `r
     $SourcePath = Resolve-Path -Path $OutputDirectory\$Hostname\artefacts
     $ArchivePath = Resolve-Path -Path $OutputDirectory\$Hostname
+
     if ($EncryptionObject -eq "None") {
         $ArchiveFile = Join-Path -Path $ArchivePath -ChildPath "$Hostname.zip"
         if (Test-Path -LiteralPath $ArchiveFile) {
@@ -591,8 +652,10 @@ function New-Archive {
         }
         Compress-7Zip -Path $SourcePath -ArchiveFileName $ArchiveFile -Format SevenZip -Password $ArchiveObject -EncryptFilenames
     }
+
     $ArchiveFile = $ArchiveFile.Split("\\")[-1]
     Write-Host "      Successfully created '$ArchiveFile'" -ForegroundColor White
+
     $Message = "archived artefacts from '$Hostname'"
     Add-LogEntry $ShowProgress $OutputDirectory $Hostname $ArchiveFile $Message
     Remove-Item -Path $SourcePath -Recurse > $null
@@ -633,14 +696,17 @@ function Optimize-Archive {
 
 function Invoke-LocalSession {
     Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $Hostname, $ArchiveObject, $CollectFiles)
+
     Get-Modules $EncryptionObject
     $DriveLetter = New-Directories $OutputDirectory $Hostname
     "LastWriteTime,gandalf_host,gandalf_stage,gandalf_log_entry" | Set-Content $OutputDirectory\$Hostname\log.audit
+
     Write-Host "`n  -> Commencing artefact acquisition for: '$Hostname'`n    ----------------------------------------" -Foreground Gray
     $Message = "commencing artefact acquisition from '$Hostname'"
     Add-LogEntry $ShowProgress $OutputDirectory $Hostname "acquisition_commenced" $Message
     Get-Platform $ShowProgress $DriveLetter $OutputDirectory $Hostname
     Get-Artefacts $ShowProgress $Memory $DriveLetter $OutputDirectory $Hostname
+
     if ($CollectFiles -And $CollectFiles -ne "False") {
         $Message = "commencing file collection from '$Hostname'"
         Add-LogEntry $ShowProgress $OutputDirectory $Hostname "file_collection_commenced" $Message
@@ -654,6 +720,7 @@ function Invoke-LocalSession {
         Add-LogEntry $ShowProgress $OutputDirectory $Hostname "file_collection_completed" $Message
     }
     $Result = Optimize-Archive $OutputDirectory $Hostname
+
     if ($Result -gt 0) {
         New-Archive $EncryptionObject $OutputDirectory $ShowProgress $Hostname $Message $ArchiveObject
     }
