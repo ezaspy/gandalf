@@ -226,18 +226,15 @@ function Get-Artefacts {
         Expand-Archive -LiteralPath "C:\TEMP\gandalf\gandalf\tools\disk_tools.zip" -DestinationPath "C:\TEMP\gandalf\gandalf\tools"
 
         $global:ProgressPreference = "Continue"
-        Write-Host ($ShowProgress, $DriveLetter, $OutputDirectory, $Hostname)
+        Rename-Item -Path "C:\TEMP\gandalf\gandalf\tools\sleuthkit-4.12.1-win32" -NewName "C:\TEMP\gandalf\gandalf\tools\tsk"
 
         # Acquiring MFT
         try { 
             Write-Progress "Acquiring `$MFT from '$Hostname'..."
 
             $global:ProgressPreference = "SilentlyContinue"
-            Expand-Archive -LiteralPath "C:\TEMP\gandalf\gandalf\tools\sleuthkit-4.12.1-win32.zip" -DestinationPath "C:\TEMP\gandalf\gandalf\tools\icat" # https://www.sleuthkit.org/sleuthkit/download.php
-
-            $icat = { C:\TEMP\gandalf\gandalf\tools\icat\bin\icat.exe \\.\c: 0 > $OutputDirectory\$Hostname\artefacts\artefacts\raw\`$MFT }
+            $icat = { C:\TEMP\gandalf\gandalf\tools\tsk\bin\icat.exe \\.\c: 0 > $OutputDirectory\$Hostname\artefacts\artefacts\raw\`$MFT }
             Invoke-Command -ScriptBlock $icat
-            Remove-Item "C:\TEMP\gandalf\gandalf\tools\icat" -Recurse -Force
 
             $global:ProgressPreference = "Continue"
             Write-Host "       Acquired `$MFT from '$Hostname'" -ForegroundColor Green
