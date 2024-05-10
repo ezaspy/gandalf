@@ -304,14 +304,14 @@ else {
 }
 
 # Checking existance of disk_tools.zip
-if (Test-Path -LiteralPath "C:\TEMP\gandalf\gandalf\tools\disk_tools.zip") {
-    Write-Host "      WARNING: 'C:\TEMP\gandalf\gandalf\tools\disk_tools.zip' does not exist." -Foreground Yellow; Write-Host "       As a result, some disk artefacts (inc. the `$MFT will not be collected." -Foreground White
+if (-Not (Test-Path -LiteralPath "C:\TEMP\gandalf\gandalf\tools\disk_tools.zip")) {
+    Clear-Host
+    Write-Host "`n`n`n`n      WARNING: 'C:\TEMP\gandalf\gandalf\tools\disk_tools.zip' does not exist." -Foreground Yellow; Write-Host "       As a result, some disk artefacts (inc. the `$MFT will not be collected." -Foreground White
     $ContinueWithoutDiskTools = Read-Host "      Do you wish to continue? y/N [N] "
     if ($ContinueWithoutDiskTools -ne "y") {
-        Write-Host "`r      Read the **Configuration** section in the README.md before trying again.`n`n"
+        Write-Host "`n`n       Read the " -NoNewLine; Write-Host "Configuration" -Foreground Grey -NoNewLine; Write-Host " section in the README.md before trying again.`n`n"
         Exit
     }
-
 }
 
 # Removing files which if exist during second attempt will cause failures
@@ -363,37 +363,32 @@ if ($Acquisition -eq "Local") {
 else {
     $RemoteCredentials = $host.ui.PromptForCredential("Local Admin authentication required", "Please enter credentials for PowerShell remoting", "", "")
     $HostListPath = [IO.Path]::Combine("lists", "hosts.list")
-    $Hostlist = Get-Content $HostListPath
-    ForEach ($Hostname in $Hostlist) {
-        if (-Not ($Hostname.Startswith("#"))) {
-            Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $Hostname $ArchiveObject $GandalfRoot
-            Write-Host "     Attempting to connect to '$Hostname'..."
-            $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials -ErrorAction SilentlyContinue -ErrorVariable SessionError
-            if ($SessionError) {
-                if ((Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") -Or (Select-String -InputObject $SessionError -Pattern "Access is denied")) { 
-                    if (Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") { 
-                        Write-Host "      FAILURE: Server name '$Hostname' could not be resolved." -Foreground Red; Write-Host "       Perhaps the host is offline or there is a networking issue?" -Foreground White
-                        $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
-                        if ($ContinueAcquisition -eq "n") {
-                            Write-Host "`r      Please try again.`n`n"
-                            Exit
-                        }
-                    }
-                    elseif (Select-String -InputObject $SessionError -Pattern "Access is denied") { 
-                        Write-Host "      FAILURE: Invalid credentials provided to access '$Hostname'." -Foreground Red; Write-Host "       Ensure you are using an account which is a member of the Local Administrators group" -Foreground White
-                        $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
-                        if ($ContinueAcquisition -eq "n") {
-                            Write-Host "`r      Please try again.`n`n"
-                            Exit
-                        }
-                    }
+    $Hostnames = Get-Content $HostListPath
+    Write-Host $Hostnames
+    $Session = New-PSSession -ComputerName $Hostnames -Credential $RemoteCredentials -ErrorAction SilentlyContinue -ErrorVariable SessionError
+    if ($SessionError) {
+        if ((Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") -Or (Select-String -InputObject $SessionError -Pattern "Access is denied")) { 
+            if (Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") { 
+                Write-Host "      FAILURE: Server name '$Hostname' could not be resolved." -Foreground Red; Write-Host "       Perhaps the host is offline or there is a networking issue?" -Foreground White
+                $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
+                if ($ContinueAcquisition -eq "n") {
+                    Write-Host "`r      Please try again.`n`n"
+                    Exit
                 }
             }
-            else {
-                Write-Host "      Session opened for '$Hostname'" -ForegroundColor Green
-                Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $DriveLetter $Hostname $Session $ArchiveObject $GandalfRoot
+            elseif (Select-String -InputObject $SessionError -Pattern "Access is denied") { 
+                Write-Host "      FAILURE: Invalid credentials provided to access '$Hostname'." -Foreground Red; Write-Host "       Ensure you are using an account which is a member of the Local Administrators group" -Foreground White
+                $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
+                if ($ContinueAcquisition -eq "n") {
+                    Write-Host "`r      Please try again.`n`n"
+                    Exit
+                }
             }
         }
+    }
+    else {
+        Write-Host "      Session opened for '$Hostname'" -ForegroundColor Green
+        Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $DriveLetter $Hostname $Session $ArchiveObject $GandalfRoot
     }
 }
 
