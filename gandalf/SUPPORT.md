@@ -25,12 +25,12 @@ Microsoft provide the most relevant and up-to-date documentation on [Just Enough
 <br><br>
 
 ### Jumphost
-As stated above, it is highly recommended to configure a system responsible for orchestrating JEA but if this is not possible, it is recommanded to stand up a Windows jumphost to facilitate PowerShell remoting. Of if you are collecting artefacts from a \*nix, standing up a Linux jumphost to facilitate Python remoting. Follow the instructions under [Enabling PowerShell](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) remoting to facilitate remote artefact acquisition from Windows hosts.
+As stated above, it is highly recommended to configure a system responsible for orchestrating JEA but if this is not possible, it is recommanded to stand up a Windows jumphost to facilitate PowerShell remoting. Of if you are collecting artefacts from a \*nix, standing up a Linux jumphost to facilitate Python remoting.
 <br><br>
 
 ### Endpoint-to-Endpoint
-Although not recommended, in some environments time is of the essence and it may not be possible to deploy a intermediary host (JEA or jumphost) in time for artefact acqisition. In such cases, you can connect to the host directly (with the appropriate credentials) to acquire the artefacts. Follow the relevant instructions under [Enabling PowerShell](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) or [Enabling SSH](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) to facilitate this method of artefact acquisition.
-<br><br><br>
+Although not recommended, in some environments time is of the essence and it may not be possible to deploy a intermediary host (JEA or jumphost) in time for artefact acqisition. In such cases, you can connect to the host directly (with the appropriate credentials) to acquire the artefacts.
+<br><br>
 
 ## Local Acquisition
-If configuring JEA or a jumphost is not feasible, the next best option would be to acquire the artefacts on the machine itself; locally. This doesn't require any addition tooling or requirements and can be performed directly on the host, via a network share or via an external drive, such as a USB - different command line switches will be required though. Usage examples can be found in the [README.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/README.md#usage).<br>
+If configuring JEA or a jumphost is not feasible, the next best option would be to acquire the artefacts on the machine itself; locally. This doesn't require any addition tooling or requirements and can be performed directly on the host, via a network share or via an external drive, such as a USB - different command line switches will be required though. Usage examples can be found in the [README.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/README.md#Usage).<br><br><br>
