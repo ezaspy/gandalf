@@ -45,9 +45,15 @@ To collect privileged disk arterfacts, namely the `$MFT`, you will need to downl
 
 ### Prerequisites
 
-You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. This is true for both Local and Remote acquisitions. On Windows Server 2012+ remoting is enabled by default. You only need to confirm that your firewall rules allow inbound access. However, no Windows client OS has PowerShell remoting enabled by default.<br>
-Additional installations may be required on Linux/macOS hosts for the target hosts to allow inbound SSH connections.<br>
-Please review the [SUPPORT.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) file for instructions on how to leverage and deploy gandalf.
+You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. This is true for both Local and Remote acquisitions. On Windows Server 2012+ remoting is enabled by default.
+
+- **Enable PowerShell remoting**; issue the cmdlet `Enable-PSRemoting`, only once on the acquisition host (for Windows OS targets)
+  - Windows Server 2012+ remoting is enabled by default
+  - No Windows Client OS has PowerShell remoting enabled by default
+- Ensure **SSH is listening** for open connections (for Linux/macOS targets)
+- Ensure all respective **firewall rules do not block the acquisition**
+
+Please review [SUPPORT.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) for instructions on how to leverage and deploy gandalf.
 <br><br><br>
 
 ## Usage
