@@ -41,18 +41,27 @@ gandalf is responsible for the acquisition-side of digital forensics, but what a
 
 ## Configuration
 
-To collect privileged disk arterfacts, namely the `$MFT`, you will need to download the [`disk_tools.zip.enc`](https://drive.google.com/file/d/1cXgeQNygkuV4aaTkNFi-3QTQ4cKK5PiU/view?usp=share_link) archive (password is `infected`) and place the enclosed archive (`disk_tools.zip`) into `gandalf\gandalf\tools\` before deploying and invoking gandalf for artefact aquisition.<br>
+To collect privileged disk arterfacts, namely the `$MFT`, you will need to download the [`disk_tools.zip.enc`](https://drive.google.com/file/d/1cXgeQNygkuV4aaTkNFi-3QTQ4cKK5PiU/view?usp=share_link) archive (password is `infected`) and place the enclosed archive (`disk_tools.zip`) into `gandalf\gandalf\tools\` before deploying and invoking gandalf.<br>
+Then copy the parent `\gandalf\` directory into `C:\TEMP`, or `/tmp/` of the acquisition host.
 
 ### Prerequisites
 
-You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. This is true for both Local and Remote acquisitions. On Windows Server 2012+ remoting is enabled by default.
+You must have necessary admin rights to obtain the forensic artefacts from hosts within your environment. This is true for both Local and Remote acquisitions.<br>
+Ensure all respective intermediate **firewalls do not block the acquisition**
 
-- **Enable PowerShell remoting**; issue the cmdlet `Enable-PSRemoting`, only once on the acquisition host (for Windows OS targets)
-  - Windows Server 2012+ remoting is enabled by default
-  - No Windows Client OS has PowerShell remoting enabled by default
+#### Windows Targets
+
+- **Enable PowerShell remoting**: `Enable-PSRemoting -SkipNetworkProfileCheck -Force`
+  - More information: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/enable-psremoting
+- Update TrustedHosts: `Set-Item WSMan:\localhost\Client\TrustedHosts -Value "<ACQUISITION_HOSTNAME>" -Force`
+
+#### Linux Targets
+
 - Ensure **SSH is listening** for open connections (for Linux/macOS targets)
-- Ensure all respective **firewall rules do not block the acquisition**
 
+<br>
+
+Ensure you revert any changes made in preperation of forensic artefact acquisition.<br>
 Please review [SUPPORT.md](https://github.com/ezaspy/gandalf/blob/main/gandalf/SUPPORT.md) for instructions on how to leverage and deploy gandalf.
 <br><br><br>
 
