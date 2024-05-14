@@ -29,7 +29,7 @@
   PS C:\> .\Invoke-Gandalf.ps1 -EncryptionObject Key -Acquisition Local -OutputDirectory C:\TEMP\gandalf\gandalf
  .Example
  The following example invokes all of the parameters with non-default arguments;
-  deployment against a remote host, specified by IP or Hostname, a (less secure) 
+  deployment against a remote host, specified by IP or Hostnames, a (less secure) 
   password-protected package, and outputted to the root directory on the D: drive.
   PS C:\> .\Invoke-Gandalf.ps1 -EncryptionObject Password -Acquisition <REMOTE_HOST> -OutputDirectory D: -Memory -ShowProgress
 #>
@@ -141,7 +141,7 @@ function Reset-Modules {
 
     if ($EncryptionObject -eq "Key" -Or $EncryptionObject -eq "Password") {
         try {
-            Invoke-Command -Session $Session -ScriptBlock { Uninstall-Module -Name 7Zip4PowerShell -Force }
+            Invoke-Command -Session $Session -ScriptBlock { Uninstall-Module -Name 7Zip4PowerShell -Force -ErrorAction SilentlyContinue }
             Remove-PSSession -Session $Session
         }
         catch {
@@ -150,7 +150,7 @@ function Reset-Modules {
     }
     else {
         try {
-            Uninstall-Module -Name 7Zip4PowerShell -Force
+            Uninstall-Module -Name 7Zip4PowerShell -Force -ErrorAction SilentlyContinue
         }
         catch {
             Write-Host "`n     Additional modules could not be removed"
@@ -232,25 +232,25 @@ function Set-Defaults {
 }
 
 function Set-ArtefactParams {
-    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $CollectFiles, $Hostname, $ArchiveObject, $GandalfRoot)
+    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $CollectFiles, $Hostnames, $ArchiveObject, $GandalfRoot)
 
     $InvokeArtefactAcquisition = [IO.Path]::Combine($GandalfRoot, "gandalf", "tools", "Invoke-ArtefactAcquisition.ps1"); $SetArtefactCollection = [IO.Path]::Combine($GandalfRoot, "gandalf", "shire", "Set-ArtefactCollection")
-    $ArtefactParams = "Param(`$EncryptionObject = '$EncryptionObject', `$OutputDirectory = '$OutputDirectory', `$ShowProgress = '$ShowProgress', `$Memory = '$Memory', `$CollectFiles = '$CollectFiles', `$Hostname = '$Hostname', `$ArchiveObject = '$ArchiveObject')"
+    $ArtefactParams = "Param(`$EncryptionObject = '$EncryptionObject', `$OutputDirectory = '$OutputDirectory', `$ShowProgress = '$ShowProgress', `$Memory = '$Memory', `$CollectFiles = '$CollectFiles', `$Hostnames = '$Hostnames', `$ArchiveObject = '$ArchiveObject')"
+    $ArtefactCollection = Get-Content -Path $SetArtefactCollection
 
     Add-Content -Path $InvokeArtefactAcquisition -Value $ArtefactParams
-
-    $ArtefactCollection = Get-Content -Path $SetArtefactCollection
-    $GandalfDir = [IO.Path]::Combine($GandalfRoot, "gandalf", "tools", "Invoke-ArtefactAcquisition.ps1")
-    Add-Content -Path $GandalfDir -Value $ArtefactCollection
+    Add-Content -Path $InvokeArtefactAcquisition -Value $ArtefactCollection
 }
 
 function Invoke-RemoteArtefactCollection {
-    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $CollectFiles, $DriveLetter, $Hostname, $Session, $ArchiveObject, $GandalfRoot)
+    Param ($EncryptionObject, $OutputDirectory, $ShowProgress, $Memory, $CollectFiles, $DriveLetter, $Hostnames, $Session, $ArchiveObject, $GandalfRoot)
+
+    Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $Hostnames $ArchiveObject $GandalfRoot
 
     $ToolsPath = [IO.Path]::Combine($GandalfRoot, "gandalf", "tools"); $DiskTools = [IO.Path]::Combine($ToolsPath, "disk_tools.zip"); $DumpIt = [IO.Path]::Combine($ToolsPath, "memory", "DumpIt.exe"); $DumpItx86 = [IO.Path]::Combine($ToolsPath, "memory", "DumpItx86.exe"); $InvokeArtefactAcquisition = [IO.Path]::Combine($ToolsPath, "Invoke-ArtefactAcquisition.ps1")
 
-    Invoke-Command -Session $Session -ScriptBlock { if (Test-Path -LiteralPath C:\TEMP\gandalf) { Remove-Item C:\TEMP\gandalf -Recurse -Force } }
-    Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\acquisitions -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\tools -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\tools\memory -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path C:\TEMP\gandalf\gandalf\lists -ItemType Directory > $null }
+    Invoke-Command -Session $Session -ScriptBlock { if (Test-Path -LiteralPath "C:\TEMP\gandalf") { Remove-Item "C:\TEMP\gandalf" -Recurse -Force } }
+    Invoke-Command -Session $Session -ScriptBlock { New-Item -Path "C:\TEMP\gandalf" -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path "C:\TEMP\gandalf\gandalf" -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path "C:\TEMP\gandalf\acquisitions" -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path "C:\TEMP\gandalf\gandalf\tools" -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path "C:\TEMP\gandalf\gandalf\tools\memory" -ItemType Directory > $null }; Invoke-Command -Session $Session -ScriptBlock { New-Item -Path "C:\TEMP\gandalf\gandalf\lists" -ItemType Directory > $null }
     Copy-Item -ToSession $Session -Path $DiskTools -Destination "C:\TEMP\gandalf\gandalf\tools\disk_tools.zip" -Force -Recurse; Copy-Item -ToSession $Session -Path $InvokeArtefactAcquisition -Destination "C:\TEMP\gandalf\gandalf\tools\Invoke-ArtefactAcquisition.ps1" -Force
 
     if ($Memory -And $Memory -ne "False") {
@@ -263,25 +263,31 @@ function Invoke-RemoteArtefactCollection {
 
     Invoke-Command -Session $Session -FilePath C:\TEMP\gandalf\gandalf\tools\.\Invoke-ArtefactAcquisition.ps1
     Remove-PSSession -Session $Session
-    Invoke-RemoteArchiveCollection $OutputDirectory $Hostname $ArchiveObject $GandalfRoot
+    Invoke-RemoteArchiveCollection $OutputDirectory $Hostnames $ArchiveObject $GandalfRoot
 }
 
 function Invoke-RemoteArchiveCollection {
-    Param ($OutputDirectory, $Hostname, $ArchiveObject, $GandalfRoot)
+    Param ($OutputDirectory, $Hostnames, $ArchiveObject, $GandalfRoot)
 
-    $FilePath = [IO.Path]::Combine($GandalfRoot, "gandalf", $OutputDirectory, $Hostname)
-    $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials
+    $FilePath = [IO.Path]::Combine($GandalfRoot, "gandalf", $OutputDirectory, $Hostnames)
+    $Session = New-PSSession -ComputerName $Hostnames -Credential $RemoteCredentials
 
-    Write-Progress "Collecting acquired artefacts from '$Hostname'..."
-    New-Item -Path $OutputDirectory -ItemType Directory > $null; New-Item -Path $OutputDirectory\$Hostname -ItemType Directory > $null
-    Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\log.audit" -Destination [IO.Path]::Combine($FilePath, "log.audit") -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\meta.audit" -Destination [IO.Path]::Combine($FilePath, "meta.audit") -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\$Hostname.zip" -Destination [IO.Path]::Combine($FilePath, "$Hostname.zip") -Force > $null 2>&1; Copy-Item -FromSession $Session "$OutputDirectory\$Hostname\$Hostname.7z" -Destination [IO.Path]::Combine($FilePath, "$Hostname.7z") -Force > $null 2>&1
+    Write-Progress "Collecting acquired artefacts from '$Hostnames'..."
+    $RemoteComputer = Invoke-Command -Session $Session -ScriptBlock { $env:COMPUTERNAME }
+    New-Item -Path $OutputDirectory\$RemoteComputer -ItemType Directory > $null
 
-    Write-Host "`n   -> Collected acquired artefacts from '$Hostname'"
-    Write-Progress "Cleaning up '$Hostname'..."
+    $LogSource = [IO.Path]::Combine($OutputDirectory, $RemoteComputer, "log.audit"); $LogDestination = [IO.Path]::Combine($FilePath, "log.audit"); $MetaSource = [IO.Path]::Combine($OutputDirectory, $RemoteComputer, "meta.audit"); $MetaDestination = [IO.Path]::Combine($FilePath, "meta.audit"); $ZipSource = [IO.Path]::Combine($OutputDirectory, $RemoteComputer, "$RemoteComputer.zip"); $ZipDestination = [IO.Path]::Combine($FilePath, "$RemoteComputer.zip"); $7ZSource = [IO.Path]::Combine($OutputDirectory, $RemoteComputer, "$RemoteComputer.7z"); $7ZDestination = [IO.Path]::Combine($FilePath, "$RemoteComputer.7z")
+    Copy-Item -FromSession $Session -Path $LogSource -Destination $LogDestination -Force > $null 2>&1
+    Copy-Item -FromSession $Session -Path $MetaSource -Destination $MetaDestination -Force > $null 2>&1
+    Copy-Item -FromSession $Session -Path $ZipSource -Destination $ZipDestination -Force > $null 2>&1
+    Copy-Item -FromSession $Session -Path $7zSource -Destination $7zDestination -Force > $null 2>&1
 
-    Invoke-Command -Session $Session -ScriptBlock { Remove-Item -Path C:\TEMP\gandalf -Recurse }
+    Write-Host "`n   -> Collected acquired artefacts from '$Hostnames'"
+    Write-Progress "Cleaning up '$Hostnames'..."
+
+    Invoke-Command -Session $Session -ScriptBlock { Remove-Item -Path "C:\TEMP\gandalf" -Recurse }
     Remove-PSSession -Session $Session
-    $Session = New-PSSession -ComputerName $Hostname -Credential $RemoteCredentials
+    $Session = New-PSSession -ComputerName $Hostnames -Credential $RemoteCredentials
 
     Reset-Modules $EncryptionObject $Session
 
@@ -354,22 +360,19 @@ else {
 Write-Host `r
 
 if ($Acquisition -eq "Local") {
-    $Hostlist = $env:COMPUTERNAME
-    ForEach ($Hostname in $Hostlist) {
-        Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $Hostname $ArchiveObject $GandalfRoot
-        C:\TEMP\gandalf\gandalf\tools\.\Invoke-ArtefactAcquisition.ps1
-    }
+    $Hostnames = $env:COMPUTERNAME
+    Set-ArtefactParams $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $Hostnames $ArchiveObject $GandalfRoot
+    C:\TEMP\gandalf\gandalf\tools\.\Invoke-ArtefactAcquisition.ps1
 }
 else {
     $RemoteCredentials = $host.ui.PromptForCredential("Local Admin authentication required", "Please enter credentials for PowerShell remoting", "", "")
     $HostListPath = [IO.Path]::Combine("lists", "hosts.list")
     $Hostnames = Get-Content $HostListPath
-    Write-Host $Hostnames
     $Session = New-PSSession -ComputerName $Hostnames -Credential $RemoteCredentials -ErrorAction SilentlyContinue -ErrorVariable SessionError
     if ($SessionError) {
         if ((Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") -Or (Select-String -InputObject $SessionError -Pattern "Access is denied")) { 
             if (Select-String -InputObject $SessionError -Pattern "server name cannot be resolved") { 
-                Write-Host "      FAILURE: Server name '$Hostname' could not be resolved." -Foreground Red; Write-Host "       Perhaps the host is offline or there is a networking issue?" -Foreground White
+                Write-Host "      FAILURE: Server name '$Hostnames' could not be resolved." -Foreground Red; Write-Host "       Perhaps the host is offline or there is a networking issue?" -Foreground White
                 $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
                 if ($ContinueAcquisition -eq "n") {
                     Write-Host "`r      Please try again.`n`n"
@@ -377,7 +380,7 @@ else {
                 }
             }
             elseif (Select-String -InputObject $SessionError -Pattern "Access is denied") { 
-                Write-Host "      FAILURE: Invalid credentials provided to access '$Hostname'." -Foreground Red; Write-Host "       Ensure you are using an account which is a member of the Local Administrators group" -Foreground White
+                Write-Host "      FAILURE: Invalid credentials provided to access '$Hostnames'." -Foreground Red; Write-Host "       Ensure you are using an account which is a member of the necessary Administrators Group" -Foreground White
                 $ContinueAcquisition = Read-Host "      Do you wish to continue? Y/n [Y] "
                 if ($ContinueAcquisition -eq "n") {
                     Write-Host "`r      Please try again.`n`n"
@@ -387,8 +390,8 @@ else {
         }
     }
     else {
-        Write-Host "      Session opened for '$Hostname'" -ForegroundColor Green
-        Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $DriveLetter $Hostname $Session $ArchiveObject $GandalfRoot
+        Write-Host "      Session(s) opened for '$Hostnames'" -ForegroundColor Green
+        Invoke-RemoteArtefactCollection $EncryptionObject $OutputDirectory $ShowProgress $Memory $CollectFiles $DriveLetter $Hostnames $Session $ArchiveObject $GandalfRoot
     }
 }
 
@@ -410,10 +413,8 @@ $ElapsedTime = Format-Time $TimeDifference
 Write-Host "`n`n  -> Finished. Total elapsed time: $ElapsedTime`n    ----------------------------------------" -Foreground Gray
 Write-Host "      gandalf completed for:"
 
-ForEach ($EachHost in $Hostlist) {
-    if (-Not ($EachHost.Startswith("#"))) {
-        Write-Host "       - $EachHost"
-    }
+ForEach ($EachHost in $Hostnames.split("`n")) {
+    Write-Host "       - $EachHost"
 }
 
 Write-Host `n`n
