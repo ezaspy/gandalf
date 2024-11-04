@@ -1,12 +1,14 @@
-# Evidence Acquisition Configuration
+# PowerShell Reporting Best Practice
 
 ## Table of Contents
 
-- [Remote Acquisition](#remote-acquisition)
-  - [Just Enough Administration (JEA)](#just-enough-administration-(jea))
-  - [Jumphost](#jumphost)
-  - [Endpoint-to-Endpoint](#endpoint-to-endpoint)
-- [Local Acquisition](#local-acquisition)
+- [PowerShell Reporting Best Practice](#powershell-reporting-best-practice)
+  - [Table of Contents](#table-of-contents)
+  - [Remote Acquisition](#remote-acquisition)
+    - [Just Enough Administration (JEA)](#just-enough-administration-jea)
+    - [Jumphost](#jumphost)
+    - [Endpoint-to-Endpoint](#endpoint-to-endpoint)
+  - [Local Acquisition](#local-acquisition)
 
 <br>
 
