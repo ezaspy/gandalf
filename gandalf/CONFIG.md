@@ -1,21 +1,21 @@
-# Additional Configuration
+# Evidence Acquisition Configuration
 
 Potential additional configuration requirements<br><br>
 <!-- TABLE OF CONTENTS -->
 # Table of Contents
 
-* [Windows](#windows)
-  * [PowerShell Remoting](#enabling-powershell-remoting)
-* [Linux/macOS](#linux-macos)
-  * [Enabling SSH](#enabling-ssh)
-* [Cross-Platform Acquisition (XPC)](#cross-platform-acquisition-(xpc))
-  * [Windows](#windows)
-      * [Installing Python3](#installing-python3)
-  * [Linux](#linux)
-    * [Installing PowerShell (pwsh)](#installing-powershell-(pwsh))
-  * [macOS](#macos)
-    * [Installing PowerShell (pwsh)](#installing-powershell-(pwsh))
-<br><br>
+- [Evidence Acquisition Configuration](#evidence-acquisition-configuration)
+- [Table of Contents](#table-of-contents)
+  - [Windows](#windows)
+    - [Enabling PowerShell remoting](#enabling-powershell-remoting)
+    - [hosts.list](#hostslist)
+  - [Linux/macOS](#linuxmacos)
+    - [Enabling SSH](#enabling-ssh)
+    - [hosts.list](#hostslist-1)
+  - [Cross-Platform Acquisition (XPC)](#cross-platform-acquisition-xpc)
+    - [Windows -\> Linux/macOS](#windows---linuxmacos)
+      - [Installing Python3](#installing-python3)
+    - [Linux/macOS -\> Windows](#linuxmacos---windows)
 
 ## Windows
 
